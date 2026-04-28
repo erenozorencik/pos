@@ -145,6 +145,15 @@ router.post('/orders/:order_id/items', async (req, res) => {
         if (orderRows.length === 0) throw new Error('Sipariş bulunamadı');
         const table_id = orderRows[0].table_id;
 
+        const [tableRows] = await connection.query('SELECT table_name FROM tables WHERE id = ?', [table_id]);
+        const tableName = tableRows.length > 0 ? tableRows[0].table_name : 'Masa ' + table_id;
+        
+        let addedByName = 'Sistem';
+        if (added_by_user) {
+            const [userRows] = await connection.query('SELECT username FROM users WHERE id = ?', [added_by_user]);
+            if (userRows.length > 0) addedByName = userRows[0].username;
+        }
+
         // Ürünün anlık fiyat ve adını bul
         const [products] = await connection.query('SELECT price, product_name FROM products WHERE id = ?', [product_id]);
         if (products.length === 0) throw new Error("Ürün bulunamadı");
@@ -190,6 +199,16 @@ router.post('/orders/:order_id/items', async (req, res) => {
         );
         
         await connection.commit();
+
+        // Fiş Yazdırma İşlemini Tetikle (Arka planda çalışır, response'u bekletmez)
+        try {
+            const { printOrderSlip } = require('../services/printer');
+            const itemsToPrint = [{ quantity, product_name, note: itemNote }];
+            printOrderSlip(order_id, tableName, addedByName, itemsToPrint).catch(err => console.error("Arkaplan yazdırma hatası:", err));
+        } catch (printErr) {
+            console.error('[API] Yazıcı modülü hatası:', printErr.message);
+        }
+
         res.json({ success: true });
     } catch (error) {
         await connection.rollback();
@@ -255,11 +274,35 @@ router.delete('/orders/:order_id/items/:item_id', async (req, res) => {
 // İskonto Uygulama (İndirim)
 router.post('/orders/:order_id/discount', async (req, res) => {
     try {
-        const { discount } = req.body;
+        let { discount } = req.body;
+        // Virgüllü girişi noktaya çevir
+        if (typeof discount === 'string') discount = discount.replace(',', '.');
         const dsc = parseFloat(discount) || 0;
-        await pool.query('UPDATE orders SET discount = ? WHERE id = ?', [dsc, req.params.order_id]);
+        const order_id = req.params.order_id;
+
+        console.log(`[API] İskonto Uygulanıyor: Sipariş #${order_id}, Tutar: ${dsc}`);
+
+        // 1. İskontoyu mutlaka kaydet
+        await pool.query('UPDATE orders SET discount = ? WHERE id = ?', [dsc, order_id]);
+
+        // 2. Log kaydını ayrı bir blokta yap (hata alsa bile üstteki işlemi bozmasın)
+        try {
+            const [orderRows] = await pool.query('SELECT table_id FROM orders WHERE id = ?', [order_id]);
+            if (orderRows.length > 0) {
+                const table_id = orderRows[0].table_id;
+                const user_id = req.user ? req.user.id : null;
+                await pool.query(
+                    'INSERT INTO item_logs (order_id, table_id, user_id, product_id, product_name, quantity, price_at_time, note, action) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    [order_id, table_id, user_id, 0, 'İSKONTO', 1, -dsc, `Adisyon #${order_id} için ₺${dsc.toFixed(2)} iskonto uygulandı`, 'discount']
+                );
+            }
+        } catch (logErr) {
+            console.error('[API] İskonto logu kaydedilemedi (ama iskonto uygulandı):', logErr.message);
+        }
+
         res.json({ success: true, discount: dsc });
     } catch(err) {
+        console.error('[API] İskonto hatası:', err.message);
         res.status(500).json({ success: false, error: err.message });
     }
 });

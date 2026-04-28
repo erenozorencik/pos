@@ -112,7 +112,7 @@ CREATE TABLE item_logs (
     quantity INT NOT NULL DEFAULT 1,
     price_at_time DECIMAL(10,2) NOT NULL,
     note VARCHAR(255) DEFAULT NULL,
-    action ENUM('add', 'cancel') DEFAULT 'add',
+    action ENUM('add', 'cancel', 'discount') DEFAULT 'add',
     logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

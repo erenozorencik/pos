@@ -1024,7 +1024,19 @@ function renderReceipt() {
         `;
         receiptItems.appendChild(div);
     });
-    receiptTotal.textContent = `₺${parseFloat(state.currentOrder.total_price).toFixed(2)}`;
+    // Toplam ve İskonto Hesabı
+    const total = parseFloat(state.currentOrder.total_price) || 0;
+    const discount = parseFloat(state.currentOrder.discount) || 0;
+    const netTotal = total - discount;
+
+    if (discount > 0) {
+        const discDiv = document.createElement('div');
+        discDiv.style.cssText = 'display: flex; justify-content: space-between; padding: 4px 12px; color: #f1c40f; font-size: 14px; border-top: 1px dashed rgba(255,255,255,0.1);';
+        discDiv.innerHTML = `<span>İskonto:</span><span>-₺${discount.toFixed(2)}</span>`;
+        receiptItems.appendChild(discDiv);
+    }
+
+    receiptTotal.textContent = `₺${netTotal.toFixed(2)}`;
 }
 
 window.deleteOrderItem = async function(orderId, itemId) {
@@ -1286,20 +1298,36 @@ async function fetchItemLogs() {
 
         data.data.forEach((log, i) => {
             const isCancel = log.eylem === 'cancel';
+            const isDiscount = log.eylem === 'discount';
             const tr = document.createElement('tr');
             const baseBg = i % 2 === 0 ? 'background:rgba(255,255,255,0.02);' : '';
-            const cancelBg = isCancel ? 'background:rgba(231,76,60,0.08);' : baseBg;
-            tr.style.cssText = cancelBg + 'border-bottom:1px solid rgba(255,255,255,0.04);';
-            const actionBadge = isCancel
-                ? `<span style="background:var(--accent-red); color:white; font-size:10px; padding:2px 6px; border-radius:4px;">İPTAL</span>`
-                : `<span style="background:var(--accent-green); color:#111; font-size:10px; padding:2px 6px; border-radius:4px;">EKLENDİ</span>`;
+            const rowBg = isCancel
+                ? 'background:rgba(231,76,60,0.08);'
+                : isDiscount
+                    ? 'background:rgba(241,196,15,0.06);'
+                    : baseBg;
+            tr.style.cssText = rowBg + 'border-bottom:1px solid rgba(255,255,255,0.04);';
+
+            let actionBadge;
+            if (isCancel) {
+                actionBadge = `<span style="background:var(--accent-red); color:white; font-size:10px; padding:2px 6px; border-radius:4px;">İPTAL</span>`;
+            } else if (isDiscount) {
+                actionBadge = `<span style="background:#f1c40f; color:#111; font-size:10px; padding:2px 6px; border-radius:4px;">İSKONTO</span>`;
+            } else {
+                actionBadge = `<span style="background:var(--accent-green); color:#111; font-size:10px; padding:2px 6px; border-radius:4px;">EKLENDİ</span>`;
+            }
+
+            const tutar = Math.abs(parseFloat(log.toplam) || 0);
+            const tutarRenk = isCancel ? 'var(--accent-red)' : isDiscount ? '#f1c40f' : 'var(--accent-green)';
+            const tutarPrefix = (isCancel || isDiscount) ? '-' : '';
+
             tr.innerHTML = `
                 <td style="padding:9px 10px;">#${log.adisyon_no}</td>
                 <td style="padding:9px 10px;">${log.masa}</td>
                 <td style="padding:9px 10px; font-weight:bold; color:var(--accent-orange);">${log.personel}</td>
-                <td style="padding:9px 10px; ${isCancel ? 'text-decoration:line-through; color:#e74c3c;' : ''}">${log.urun}</td>
+                <td style="padding:9px 10px; ${isCancel ? 'text-decoration:line-through; color:#e74c3c;' : isDiscount ? 'color:#f1c40f; font-weight:bold;' : ''}">${log.urun}</td>
                 <td style="padding:9px 10px; text-align:right;">${log.adet}</td>
-                <td style="padding:9px 10px; text-align:right; color:${isCancel ? 'var(--accent-red)' : 'var(--accent-green)'};">${isCancel ? '-' : ''}₺${parseFloat(log.toplam).toFixed(2)}</td>
+                <td style="padding:9px 10px; text-align:right; color:${tutarRenk};">${tutarPrefix}₺${tutar.toFixed(2)}</td>
                 <td style="padding:9px 10px; color:var(--accent-orange); font-style:italic; font-size:13px;">${log.not_var || '-'}</td>
                 <td style="padding:9px 10px;">${actionBadge}</td>
                 <td style="padding:9px 10px; color:#888; font-size:12px;">${new Date(log.tarih).toLocaleString('tr-TR')}</td>

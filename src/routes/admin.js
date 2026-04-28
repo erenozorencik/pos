@@ -194,6 +194,15 @@ router.get('/reports/daily-summary', async (req, res) => {
             }
         });
 
+        // 1b. İskonto tutarını orders tablosundan ayrıca çek
+        // (iskontolar payments'a değil, orders.discount sütununa yazılıyor)
+        const [discountRes] = await pool.query(`
+            SELECT COALESCE(SUM(discount), 0) as total_discount
+            FROM orders
+            WHERE closed_at BETWEEN ? AND ? AND discount > 0
+        `, [startDate, endDate]);
+        paySummary.discount = parseFloat(discountRes[0].total_discount) || 0;
+
         // 2. Ürün Bazlı Satış Logları (hangi personel, ne zaman, hangi ürünü sattı)
         const [itemLogs] = await pool.query(`
             SELECT 

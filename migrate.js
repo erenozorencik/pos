@@ -44,16 +44,36 @@ async function migrate() {
                 order_item_id INT NULL,
                 table_id INT NOT NULL,
                 user_id INT NOT NULL,
-                product_id INT NOT NULL,
+                product_id INT NULL,
                 product_name VARCHAR(100) NOT NULL,
                 quantity INT NOT NULL DEFAULT 1,
                 price_at_time DECIMAL(10,2) NOT NULL,
                 note VARCHAR(255) DEFAULT NULL,
+                action ENUM('add', 'cancel', 'discount') DEFAULT 'add',
                 logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             ) CHARACTER SET utf8mb4;
         `);
+
+        // Eğer tablo varsa ama action kolonu yoksa veya eksikse düzelt
+        const [logCols] = await connection.query(`
+            SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'item_logs' AND COLUMN_NAME = 'action'
+        `);
+        
+        if (logCols.length === 0) {
+            await connection.query(`ALTER TABLE item_logs ADD COLUMN action ENUM('add', 'cancel', 'discount') DEFAULT 'add' AFTER note`);
+            console.log('✅ item_logs.action kolonu eklendi.');
+        } else {
+            // Kolon var ama enum eksik olabilir diye güncelle
+            await connection.query(`ALTER TABLE item_logs MODIFY COLUMN action ENUM('add', 'cancel', 'discount') DEFAULT 'add'`);
+            console.log('✅ item_logs.action kolonu güncellendi.');
+        }
+
+        // product_id'yi NULL yapılabilir hale getir
+        await connection.query(`ALTER TABLE item_logs MODIFY COLUMN product_id INT NULL`);
+        
         console.log('✅ item_logs tablosu hazır.');
 
         console.log('\n🎉 Migrasyon tamamlandı! Sunucuyu yeniden başlatın: npm start');
