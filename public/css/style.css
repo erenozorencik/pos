@@ -611,3 +611,181 @@ label {
 .table-card.warning-yellow .table-status { background-color: rgba(241, 196, 15, 0.2) !important; color: #f1c40f !important; }
 .table-card.warning-red { border-bottom: 4px solid #e74c3c !important; }
 .table-card.warning-red .table-status { background-color: rgba(231, 76, 60, 0.2) !important; color: #e74c3c !important; }
+
+/* ========================================= */
+/* MOBİL UYUM (RESPONSIVE) TASARIM           */
+/* ========================================= */
+@media (max-width: 768px) {
+    body {
+        /* Mobil tarayıcıların dinamik adres çubuğunu hesaba katar */
+        height: 100dvh;
+    }
+    
+    .app-header {
+        height: auto;
+        flex-wrap: wrap;
+        padding: 10px;
+        gap: 10px;
+        justify-content: space-between;
+    }
+    
+    .logo { 
+        order: 1; 
+        font-size: 20px; 
+    }
+    
+    .header-status { 
+        order: 2; 
+        padding: 6px 10px; 
+        font-size: 12px; 
+    }
+    
+    .nav-menu { 
+        order: 3; 
+        width: 100%; 
+        justify-content: center; 
+        margin-top: 5px; 
+    }
+    
+    .nav-btn {
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+    
+    .view { 
+        padding: 10px; 
+    }
+    
+    .tables-grid {
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        gap: 10px;
+        padding-bottom: 80px; /* Alttan boşluk */
+    }
+    
+    .table-card { 
+        height: 110px; 
+    }
+    
+    .table-card h3 { 
+        font-size: 16px; 
+        margin-bottom: 6px; 
+    }
+    
+    .table-status {
+        font-size: 12px;
+        padding: 4px 10px;
+    }
+    
+    /* Order Layout (Sipariş Ekranı) */
+    .order-layout {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .menu-panel {
+        flex: 1.2;
+        padding: 10px;
+        min-height: 40vh; /* Mobilde alan kazanmak için */
+    }
+    
+    .receipt-panel {
+        flex: 1;
+        min-width: 100%;
+        min-height: 40vh;
+    }
+    
+    .categories { 
+        margin-bottom: 10px; 
+        padding-bottom: 8px; 
+    }
+    
+    .category-btn { 
+        padding: 8px 16px; 
+        font-size: 14px; 
+    }
+    
+    .products-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 8px;
+    }
+    
+    .product-card { 
+        min-height: 90px; 
+        padding: 8px; 
+    }
+    
+    .product-name { 
+        font-size: 13px; 
+        margin-bottom: 4px; 
+    }
+    
+    .product-price { 
+        font-size: 14px; 
+    }
+    
+    .receipt-header, .receipt-footer { 
+        padding: 10px; 
+    }
+    
+    .btn-large { 
+        padding: 12px; 
+        font-size: 15px; 
+    }
+    
+    .total-row { 
+        margin-bottom: 12px; 
+        font-size: 18px; 
+    }
+    
+    /* Modallar ve Numpad */
+    .login-box {
+        padding: 24px;
+    }
+
+    #payment-view > div {
+        flex-direction: column !important;
+        overflow-y: auto;
+        gap: 12px !important;
+        padding-bottom: 20px;
+    }
+    
+    #payment-view > div > div {
+        flex: none !important;
+    }
+    
+    .numpad-btn {
+        padding: 12px 0;
+        font-size: 20px;
+    }
+    
+    /* Admin Panel */
+    .admin-layout { 
+        flex-direction: column !important; 
+    }
+    
+    .admin-sidebar { 
+        width: 100% !important; 
+        border-right: none !important; 
+        border-bottom: 1px solid var(--border-color); 
+    }
+    
+    .admin-nav { 
+        flex-direction: row !important; 
+        overflow-x: auto; 
+        gap: 8px; 
+        padding: 10px !important; 
+    }
+    
+    .admin-tab-btn { 
+        white-space: nowrap; 
+        padding: 8px 12px; 
+    }
+    
+    .admin-content { 
+        padding: 10px !important; 
+    }
+    
+    .admin-grid {
+        grid-template-columns: 1fr;
+    }
+}
