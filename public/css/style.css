@@ -1,0 +1,613 @@
+:root {
+    --bg-dark: #121418;
+    --bg-card: #1e2126;
+    --bg-card-hover: #262a31;
+    --text-primary: #e4e6eb;
+    --text-secondary: #a0a3ab;
+    --accent-blue: #3b82f6;
+    --accent-green: #10b981;
+    --accent-red: #ef4444;
+    --accent-orange: #f59e0b;
+    --border-color: rgba(255, 255, 255, 0.08);
+    --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.3);
+    
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --padding-sm: 12px;
+    --padding-md: 16px;
+    --padding-lg: 24px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none; /* Yanlışlıkla metin seçilmesini engelle (dokunmatik için önemli) */
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    overflow: hidden; /* SPA mantığı, scroll'lar içeride olacak */
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- HEADER --- */
+.app-header {
+    height: 70px;
+    background-color: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--padding-lg);
+    box-shadow: var(--shadow-soft);
+    z-index: 10;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.logo span {
+    color: var(--accent-blue);
+}
+
+.nav-menu {
+    display: flex;
+    gap: 16px;
+}
+
+.nav-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 16px;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.nav-btn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.nav-btn.active {
+    color: var(--text-primary);
+    background-color: rgba(59, 130, 246, 0.15);
+    color: var(--accent-blue);
+}
+
+.header-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    background-color: rgba(16, 185, 129, 0.1);
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--accent-green);
+    box-shadow: 0 0 10px var(--accent-green);
+}
+
+/* --- MAIN CONTAINER --- */
+.app-container {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+.view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: var(--padding-lg);
+    display: flex;
+    flex-direction: column;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--padding-lg);
+}
+
+/* --- BUTTONS --- */
+.btn {
+    padding: var(--padding-md) var(--padding-lg);
+    border-radius: var(--radius-md);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+}
+.btn:active {
+    transform: scale(0.98);
+}
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+.btn-primary {
+    background-color: var(--accent-blue);
+    color: white;
+}
+.btn-primary:not(:disabled):hover {
+    background-color: #2563eb;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+}
+.btn-secondary {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+.btn-secondary:hover {
+    background-color: var(--bg-card-hover);
+}
+.btn-large {
+    width: 100%;
+    padding: 20px;
+    font-size: 18px;
+}
+
+/* --- TABLES GRID --- */
+.tables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    overflow-y: auto;
+    padding-bottom: 40px;
+}
+
+.table-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    height: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.table-card:hover {
+    background-color: var(--bg-card-hover);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-soft);
+}
+
+.table-card h3 {
+    font-size: 24px;
+    margin-bottom: 12px;
+}
+
+.table-status {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.table-card.empty { border-bottom: 4px solid var(--accent-green); }
+.table-card.empty .table-status { background-color: rgba(16, 185, 129, 0.1); color: var(--accent-green); }
+
+.table-card.occupied { border-bottom: 4px solid var(--accent-orange); }
+.table-card.occupied .table-status { background-color: rgba(245, 158, 11, 0.1); color: var(--accent-orange); }
+
+.table-card.bill_requested { border-bottom: 4px solid var(--accent-red); }
+.table-card.bill_requested .table-status { background-color: rgba(239, 68, 68, 0.1); color: var(--accent-red); }
+
+/* --- ORDER LAYOUT --- */
+.order-layout {
+    display: flex;
+    height: 100%;
+    gap: 24px;
+}
+
+.menu-panel {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: var(--padding-lg);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.receipt-panel {
+    flex: 1;
+    min-width: 350px;
+    background-color: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.categories {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+.category-btn {
+    white-space: nowrap;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.category-btn.active {
+    background-color: var(--accent-blue);
+    color: white;
+    border-color: var(--accent-blue);
+}
+
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+    overflow-y: auto;
+    flex: 1;
+    align-content: start;
+    padding-right: 8px;
+}
+
+.product-card {
+    background-color: rgba(255,255,255,0.03);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--padding-md);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 120px;
+}
+
+.product-card:hover {
+    background-color: rgba(255,255,255,0.08);
+    border-color: var(--accent-blue);
+}
+
+.product-name {
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.product-price {
+    color: var(--accent-green);
+    font-weight: 700;
+    font-size: 18px;
+}
+
+/* --- RECEIPT --- */
+.receipt-header {
+    padding: var(--padding-lg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.receipt-items {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--padding-md);
+}
+
+.receipt-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.item-info {
+    flex: 1;
+}
+
+.item-name {
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.item-meta {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.item-total {
+    font-weight: 600;
+}
+
+.receipt-footer {
+    padding: var(--padding-lg);
+    background-color: rgba(0,0,0,0.2);
+    border-top: 1px solid var(--border-color);
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 24px;
+}
+
+.total-price {
+    color: var(--accent-green);
+}
+
+/* --- UTILS & ANIMATIONS --- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.empty-receipt {
+    text-align: center;
+    color: var(--text-secondary);
+    margin-top: 50px;
+    font-style: italic;
+}
+
+/* Toast */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    background-color: var(--bg-card);
+    color: white;
+    padding: 16px 24px;
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    border-left: 4px solid var(--accent-blue);
+    animation: slideIn 0.3s ease-out forwards;
+}
+.toast.error { border-left-color: var(--accent-red); }
+.toast.success { border-left-color: var(--accent-green); }
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* --- ADMIN & LISTS --- */
+.admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    padding-bottom: 40px;
+}
+
+.admin-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--padding-lg);
+}
+
+/* --- ADMIN SIDEBAR DASHBOARD TABS --- */
+.admin-tab-btn {
+    text-align: left;
+    margin-right: 0;
+    width: 100%;
+}
+.admin-tab-btn.active {
+    background-color: rgba(255,255,255,0.1);
+    color: white;
+}
+.admin-tab-btn:hover {
+    background-color: rgba(255,255,255,0.05);
+}
+
+.admin-card h3 {
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.admin-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+}
+
+.list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 14px;
+}
+
+.list-item button {
+    background: var(--accent-red);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+
+/* --- FORM ELEMENTS --- */
+.login-box {
+    background-color: var(--bg-card);
+    padding: 40px;
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    width: 100%;
+    max-width: 400px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.form-input {
+    width: 100%;
+    background-color: rgba(255,255,255,0.05);
+    border: 1px solid var(--border-color);
+    color: white;
+    padding: 12px;
+    border-radius: var(--radius-md);
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.form-input:focus {
+    border-color: var(--accent-blue);
+    background-color: rgba(255,255,255,0.08);
+}
+
+.btn-small {
+    padding: 8px 12px;
+    font-size: 14px;
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* POS Kasa Ekranı */
+.numpad-btn {
+    background: #34495e;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 24px;
+    font-weight: bold;
+    padding: 20px 0;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+.numpad-btn:active {
+    background: #2c3e50;
+    transform: scale(0.95);
+}
+.fastpay-btn {
+    background: #2ecc71;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 12px 0;
+    cursor: pointer;
+}
+.fastpay-btn:active {
+    background: #27ae60;
+}
+.btn-pay-method {
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 18px;
+    font-weight: bold;
+    padding: 16px 0;
+    cursor: pointer;
+    width: 100%;
+    transition: opacity 0.2s;
+}
+.btn-pay-method:hover {
+    opacity: 0.9;
+}
+.pos-item {
+    display: grid;
+    grid-template-columns: 3fr 1fr 1fr;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background 0.2s;
+    user-select: none;
+}
+.pos-item:hover {
+    background: rgba(255,255,255,0.05);
+}
+.pos-item.selected {
+    background: rgba(52, 152, 219, 0.3);
+    border-left: 4px solid #3498db;
+}
+.pos-item.paid {
+    opacity: 0.5;
+    text-decoration: line-through;
+    pointer-events: none;
+}
+
+/* Sipariş Çarpan (Multiplier) Butonları */
+.multiplier-btn {
+    background: #34495e;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 8px 16px;
+    cursor: pointer;
+    min-width: 45px;
+    transition: background 0.2s, transform 0.1s;
+}
+.multiplier-btn.active {
+    background: #e67e22;
+    transform: scale(1.05);
+}
+.multiplier-btn:active {
+    transform: scale(0.95);
+}
+
+.table-card.warning-yellow { border-bottom: 4px solid #f1c40f !important; }
+.table-card.warning-yellow .table-status { background-color: rgba(241, 196, 15, 0.2) !important; color: #f1c40f !important; }
+.table-card.warning-red { border-bottom: 4px solid #e74c3c !important; }
+.table-card.warning-red .table-status { background-color: rgba(231, 76, 60, 0.2) !important; color: #e74c3c !important; }

@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cafe POS</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    
+    <header class="app-header" id="main-header" style="display: none;">
+        <div class="logo">Cafe<span>POS</span></div>
+        <nav class="nav-menu">
+            <button class="nav-btn active" data-target="tables-view">Masalar</button>
+            <button class="nav-btn admin-only" data-target="admin-view" id="nav-admin-btn" style="display:none;">Yönetici Paneli</button>
+        </nav>
+        <div class="header-status">
+            <span class="status-indicator"></span> 
+            <span id="logged-user-name">Personel</span>
+            <button id="btn-switch-user" class="btn btn-secondary" style="margin-left: 10px; padding: 4px 10px; font-size: 13px; background: rgba(59, 130, 246, 0.2); border-color: var(--accent-blue); color: var(--accent-blue);">Geçiş Yap</button>
+            <button id="btn-logout" class="btn btn-secondary" style="margin-left: 10px; padding: 4px 10px; font-size: 13px;">Çıkış</button>
+        </div>
+    </header>
+
+    <main class="app-container">
+        
+        <!-- LOGIN EKRANI -->
+        <section id="login-view" class="view active" style="align-items: center; justify-content: center;">
+            <div class="login-box">
+                <div class="logo" style="margin-bottom: 24px; text-align: center; font-size: 32px;">Cafe<span>POS</span></div>
+                <form id="login-form">
+                    <div style="margin-bottom: 16px;">
+                        <label>Kullanıcı Adı</label>
+                        <input type="text" id="login-username" class="form-input" required placeholder="Giriş yapın...">
+                    </div>
+                    <div style="margin-bottom: 24px;">
+                        <label>Şifre</label>
+                        <input type="password" id="login-password" class="form-input" required placeholder="****">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-large">Sisteme Giriş Yap</button>
+                    <div style="text-align:center; margin-top:20px; color:#666; font-size:12px;">İlk giriş için: admin / 1234</div>
+                </form>
+            </div>
+        </section>
+
+        <!-- MASALAR EKRANI -->
+        <section id="tables-view" class="view" style="display: none;">
+            <div class="view-header">
+                <h2>Salon Durumu</h2>
+                <div class="legend">
+                    <span class="legend-item"><span class="dot empty"></span> Boş</span>
+                    <span class="legend-item"><span class="dot occupied"></span> Dolu</span>
+                </div>
+            </div>
+            <div class="tables-grid" id="tables-grid">
+                <!-- Masalar JS ile buraya yüklenecek -->
+                <div class="loading">Masalar Yükleniyor...</div>
+            </div>
+        </section>
+
+        <!-- SİPARİŞ EKRANI -->
+        <section id="order-view" class="view" style="display: none;">
+            <div class="order-layout">
+                
+                <!-- Sol Panel: Menü ve Ürünler -->
+                <div class="menu-panel">
+                    <div class="view-header" style="display: flex; align-items: center; gap: 10px;">
+                        <button class="btn btn-secondary back-to-tables">← Geri</button>
+                        <h2 id="current-table-name" style="flex: 1;">Masa --</h2>
+                        <button id="btn-transfer-table" class="btn btn-secondary" style="background-color: var(--accent-orange); color: white;">Masa Taşı</button>
+                    </div>
+                    
+                    <div class="categories" id="category-list">
+                        <!-- Kategoriler JS ile yüklenecek -->
+                    </div>
+                    
+                    <!-- ÇARPAN (MULTIPLIER) BUTONLARI -->
+                    <div style="display: flex; gap: 8px; padding: 10px 20px; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border-color); overflow-x: auto;">
+                        <div style="color: #aaa; font-size: 14px; align-self: center; margin-right: 8px;">Adet:</div>
+                        <button class="multiplier-btn active" data-val="1">x1</button>
+                        <button class="multiplier-btn" data-val="2">x2</button>
+                        <button class="multiplier-btn" data-val="3">x3</button>
+                        <button class="multiplier-btn" data-val="4">x4</button>
+                        <button class="multiplier-btn" data-val="5">x5</button>
+                        <button class="multiplier-btn" data-val="6">x6</button>
+                        <button class="multiplier-btn" data-val="7">x7</button>
+                        <button class="multiplier-btn" data-val="8">x8</button>
+                        <button class="multiplier-btn" data-val="9">x9</button>
+                    </div>
+
+                    <div class="products-grid" id="products-grid">
+                        <!-- Seçili kategoriye göre ürünler JS ile yüklenecek -->
+                    </div>
+                </div>
+
+                <!-- Sağ Panel: Adisyon -->
+                <div class="receipt-panel" style="position: relative;">
+                    <div class="receipt-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3>Adisyon</h3>
+                        <button id="btn-move-items" class="btn btn-secondary" style="font-size:12px; padding:5px 10px; background:var(--accent-orange); color:white; display:none;">⇆ Masaya Taşı</button>
+                    </div>
+
+                    <!-- Bekleyen Sepet (onaylanmamış) -->
+                    <div id="cart-section" style="background:rgba(243,156,18,0.08); border-bottom: 2px dashed var(--accent-orange); flex-shrink:0;">
+                        <div style="padding:6px 12px; font-size:11px; color:var(--accent-orange); font-weight:bold; letter-spacing:1px;">🛒 SEPET — Onaylanmadı</div>
+                        <div id="cart-items"></div>
+                    </div>
+
+                    <!-- Onaylanmış Kalemler -->
+                    <div class="receipt-items" id="receipt-items" style="flex:1; overflow-y:auto;">
+                        <div class="empty-receipt">Henüz ürün eklenmedi</div>
+                    </div>
+
+                    <div class="receipt-footer">
+                        <!-- Sepet Kaydet Butonu -->
+                        <button id="btn-save-cart" class="btn btn-primary btn-large" style="display:none; background:var(--accent-orange); margin-bottom:8px; width:100%;">📥 Siparişi Masaya Kaydet</button>
+                        <div class="total-row">
+                            <span>Toplam:</span>
+                            <span id="receipt-total" class="total-price">₺0.00</span>
+                        </div>
+                        <div class="action-buttons">
+                            <button id="btn-pay" class="btn btn-primary btn-large admin-only" disabled>Ödeme Al (Kapat)</button>
+                        </div>
+                    </div>
+
+                    <!-- Masa Boş Overlay -->
+                    <div id="empty-table-overlay" style="display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 100; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px;">
+                        <h2 style="font-size: 28px; margin-bottom: 16px; color: white;">Adisyon Açılmamış</h2>
+                        <p style="color: #aaa; margin-bottom: 24px;">Bu masa şu an boş. Ekstra adisyon başlatmak istiyor musunuz?</p>
+                        <div style="display: flex; gap: 16px;">
+                            <button id="btn-open-order" class="btn btn-primary btn-large" style="width: auto; padding: 16px 30px;">Evet, Masayı Aç</button>
+                            <button id="btn-cancel-order" class="btn btn-secondary btn-large" style="width: auto; padding: 16px 30px;">İptal</button>
+                        </div>
+                    </div>
+
+                    <!-- Masa Taşıma Overlay -->
+                    <div id="transfer-table-overlay" style="display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 110; flex-direction: column; justify-content: center; align-items: center; padding: 20px;">
+                        <div style="background: var(--bg-card); padding: 30px; border-radius: 12px; border: 1px solid var(--border-color); width: 100%; max-width: 400px; text-align: center;">
+                            <h2 style="font-size: 24px; margin-bottom: 20px; color: white;">Masayı Taşı</h2>
+                            <p style="color: #aaa; margin-bottom: 16px;">Hangi masaya aktarmak istiyorsunuz?</p>
+                            <select id="transfer-table-select" class="form-input" style="font-size: 16px; margin-bottom: 20px;">
+                                <option value="">Hedef Masa Seçin</option>
+                            </select>
+                            <div style="display: flex; gap: 10px; justify-content: center;">
+                                <button id="btn-confirm-transfer" class="btn btn-primary" style="background: var(--accent-orange);">Taşı</button>
+                                <button id="btn-cancel-transfer" class="btn btn-secondary">İptal</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ürün Notu Overlay -->
+                    <div id="product-note-overlay" style="display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.88); z-index: 115; flex-direction: column; justify-content: center; align-items: center; padding: 20px;">
+                        <div style="background: var(--bg-card); padding: 30px; border-radius: 12px; border: 1px solid var(--border-color); width: 100%; max-width: 420px;">
+                            <h2 style="font-size: 20px; margin-bottom: 6px; color: white;" id="note-product-title">Ürün Notu</h2>
+                            <p style="color: #aaa; font-size: 13px; margin-bottom: 16px;">Not eklemek istemiyorsanız boş bırakıp Ekle'ye basın</p>
+                            <textarea id="product-note-input" class="form-input" rows="3" placeholder="Örn: Mantarsız, Ekstra ketçap, Az tuz..." style="width:100%; resize:none; margin-bottom:18px; font-size:15px;"></textarea>
+                            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                                <button id="btn-cancel-product-note" class="btn btn-secondary" style="flex:1;">İptal</button>
+                                <button id="btn-confirm-product-note" class="btn btn-primary" style="flex:2; background: var(--accent-orange);">Adisyona Ekle</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ürün Taşıma Overlay (Masa Ekranı) -->
+                    <div id="item-transfer-overlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:120; flex-direction:column; justify-content:center; align-items:center; padding:16px;">
+                        <div style="background:var(--bg-card); padding:24px; border-radius:12px; border:1px solid var(--border-color); width:100%; max-width:440px; max-height:80vh; display:flex; flex-direction:column; gap:12px;">
+                            <h2 style="font-size:18px; color:white; margin:0;">⇆ Ürün Taşı</h2>
+                            <p style="color:#aaa; font-size:13px; margin:0;">Taşımak istediğiniz ürün(leri) seçin ve hedef masayı belirtin.</p>
+                            <div id="item-transfer-product-list" style="overflow-y:auto; max-height:220px; border:1px solid var(--border-color); border-radius:6px; padding:8px;"></div>
+                            <select id="item-transfer-table-select" class="form-input">
+                                <option value="">Hedef Masa Seçin</option>
+                            </select>
+                            <div style="display:flex; gap:8px;">
+                                <button id="btn-cancel-item-transfer" class="btn btn-secondary" style="flex:1;">İptal</button>
+                                <button id="btn-confirm-item-transfer" class="btn btn-primary" style="flex:2; background:var(--accent-orange);">Taşı</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                
+            </div>
+        </section>
+
+        <!-- ÖDEME VE KASA EKRANI (TAM SAYFA GÖRÜNÜM) -->
+        <section id="payment-view" class="view" style="display: none; padding: 16px; background-color: #1e272e;">
+            <div style="display: flex; gap: 16px; width: 100%; height: 100%;">
+                
+                <!-- Sol Kolon: Adisyon / Ürünler listesi -->
+                <div style="flex: 1.5; background: var(--bg-card); border-radius: 8px; display: flex; flex-direction: column; border: 1px solid var(--border-color); overflow: hidden;">
+                    <div style="padding: 16px; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.2);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="color: #aaa; font-size: 14px;">Adisyon No: <span id="pos-order-id">#--</span></span>
+                            <span style="color: var(--accent-orange); font-size: 14px;" id="pos-table-name">Masa --</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 3fr 1fr 1fr; font-size: 13px; color: #888; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 4px; margin-top: 10px;">
+                            <span>Ürün Adı</span>
+                            <span style="text-align: right;">Miktar</span>
+                            <span style="text-align: right;">Tutar</span>
+                        </div>
+                    </div>
+                    <div id="pos-items-list" style="flex: 1; overflow-y: auto; padding: 0;">
+                        <!-- JS ile doldurulacak -->
+                    </div>
+                    <div style="padding: 12px; border-top: 1px solid var(--border-color); display: flex; gap: 8px;">
+                        <button class="btn btn-secondary" style="flex: 1; padding: 12px;" id="btn-pay-cancel">Ana Panele Dön</button>
+                        <button class="btn btn-primary" style="flex: 1; padding: 12px; background: var(--accent-orange);" id="btn-transfer-items">Masaya Taşı (Aktar)</button>
+                    </div>
+
+                    <!-- Parçalı Ürün Taşıma Overlay -->
+                    <div id="transfer-items-overlay" style="display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 120; flex-direction: column; justify-content: center; align-items: center; padding: 20px;">
+                        <div style="background: var(--bg-card); padding: 30px; border-radius: 12px; border: 1px solid var(--border-color); width: 100%; max-width: 400px; text-align: center;">
+                            <h2 style="font-size: 24px; margin-bottom: 20px; color: white;">Ürünleri Taşı</h2>
+                            <p style="color: #aaa; margin-bottom: 16px;">Seçtiğiniz ürünleri hedef masaya yatırmak üzeresiniz.</p>
+                            <select id="transfer-items-select" class="form-input" style="font-size: 16px; margin-bottom: 20px;">
+                                <option value="">Hedef Masa Seçin (Açık/Kapalı)</option>
+                            </select>
+                            <div style="display: flex; gap: 10px; justify-content: center;">
+                                <button id="btn-confirm-item-transfer" class="btn btn-primary" style="background: var(--accent-orange);">Seçilileri Taşı</button>
+                                <button id="btn-cancel-item-transfer" class="btn btn-secondary">İptal</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Orta Kolon: Bilgiler ve Numpad -->
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 16px;">
+                    <!-- Genel Toplam ve Kalan Özeti -->
+                    <div style="background: var(--bg-card); border-radius: 8px; padding: 20px; border: 1px solid var(--border-color); font-size: 18px; font-weight: bold; display: flex; flex-direction: column; gap: 12px;">
+                        <div style="display: flex; justify-content: space-between; color: #f1c40f;">
+                            <span>TOPLAM:</span> <span id="pos-total">0.00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; color: #e74c3c;">
+                            <span>İSKONTO:</span> <span id="pos-discount">0.00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; color: #2ecc71;">
+                            <span>ÖDENDİ:</span> <span id="pos-paid">0.00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; color: #3498db; font-size: 24px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #555;">
+                            <span>KALAN:</span> <span id="pos-remaining">0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Girilen Tutar Göstergesi ve İskonto -->
+                    <div style="background: var(--bg-card); border-radius: 8px; padding: 16px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px;">
+                        <input type="text" id="pos-input-amount" readonly value="" placeholder="Tahsil Edilecek Tutar..." style="width: 100%; font-size: 28px; text-align: right; padding: 12px; background: #111; color: #fff; border: 1px solid #444; border-radius: 6px;">
+                        <div style="display: flex; gap: 8px;">
+                            <input type="number" id="pos-input-discount" placeholder="İskonto Uygula ₺" style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #222; color: white;">
+                            <button id="btn-apply-discount" class="btn btn-secondary" style="background: #e67e22;">Uygula</button>
+                        </div>
+                    </div>
+
+                    <!-- Numpad -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; flex: 1;">
+                        <button class="numpad-btn" data-val="1">1</button>
+                        <button class="numpad-btn" data-val="2">2</button>
+                        <button class="numpad-btn" data-val="3">3</button>
+                        <button class="numpad-btn" data-val="4">4</button>
+                        <button class="numpad-btn" data-val="5">5</button>
+                        <button class="numpad-btn" data-val="6">6</button>
+                        <button class="numpad-btn" data-val="7">7</button>
+                        <button class="numpad-btn" data-val="8">8</button>
+                        <button class="numpad-btn" data-val="9">9</button>
+                        <button class="numpad-btn" data-val="0">0</button>
+                        <button class="numpad-btn" data-val=".">.</button>
+                        <button class="numpad-btn" id="btn-numpad-clear" style="background: #e74c3c;">C</button>
+                    </div>
+                </div>
+
+                <!-- Sağ Kolon: Hızlı Ödeme ve Çeşitleri -->
+                <div style="flex: 0.8; display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Hızlı Nakit Butonları -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                        <button class="fastpay-btn" data-val="10">10 ₺</button>
+                        <button class="fastpay-btn" data-val="20">20 ₺</button>
+                        <button class="fastpay-btn" data-val="50">50 ₺</button>
+                        <button class="fastpay-btn" data-val="100">100 ₺</button>
+                        <button class="fastpay-btn" data-val="200" style="grid-column: span 2;">200 ₺</button>
+                    </div>
+
+                    <!-- Ödeme Yöntemi Kaydet -->
+                    <button class="btn-pay-method" data-method="cash" style="background-color: #27ae60;">NAKİT YAZ</button>
+                    <button class="btn-pay-method" data-method="credit_card" style="background-color: #2980b9;">KREDİ KARTI YAZ</button>
+                    <button class="btn-pay-method" data-method="meal_card" style="background-color: #8e44ad;">YEMEK ÇEKİ (TICKET vs)</button>
+                    
+                    <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; margin-top: 10px; border: 1px solid #444;">
+                        <label style="font-size: 12px; color: #ccc;">Veresiye İçin Müşteri Seçimi:</label>
+                        <select id="pos-customer-select" style="width: 100%; padding: 10px; margin-top: 4px; background: #222; color: #fff; border: 1px solid #444; border-radius: 4px;">
+                            <option value="">-- Müşteri Yok --</option>
+                        </select>
+                        <button class="btn-pay-method" data-method="veresiye" style="background-color: #e67e22; width: 100%; margin-top: 8px; font-size: 16px;">CARİ / VERESİYE YAZ</button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- RAPORLAR EKRANI -->
+        <section id="reports-view" class="view" style="display: none;">
+            <div class="view-header">
+                <h2>Gün Sonu Raporu</h2>
+            </div>
+            <div class="report-content">
+                <p>Raporlama modülü bu ekranda yer alacaktır. (Yakında)</p>
+            </div>
+        </section>
+
+        <!-- YÖNETİCİ (ADMIN) DASHBOARD EKRANI -->
+        <section id="admin-view" class="view" style="display: none; padding: 0;">
+            <div class="admin-layout" style="display: flex; height: 100%; width: 100%;">
+                
+                <!-- Sol Sidebar -->
+                <div class="admin-sidebar" style="width: 250px; background-color: var(--bg-card); border-right: 1px solid var(--border-color); display: flex; flex-direction: column;">
+                    <div style="padding: 24px; border-bottom: 1px solid var(--border-color);">
+                        <h2 style="font-size: 20px;">Yönetim Paneli</h2>
+                    </div>
+                    <nav class="admin-nav" style="padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+                        <button class="nav-btn admin-tab-btn active" data-tab="tab-reports">📊 Genel İstatistikler</button>
+                        <button class="nav-btn admin-tab-btn" data-tab="tab-charts">📈 Grafik & Analiz</button>
+                        <button class="nav-btn admin-tab-btn" data-tab="tab-item-logs">🧾 Anlık Sipariş Logları</button>
+                        <button class="nav-btn admin-tab-btn" data-tab="tab-customers">📓 Müşteriler & Borçlar</button>
+                        <button class="nav-btn admin-tab-btn" data-tab="tab-users">👥 Personel Yönetimi</button>
+                        <button class="nav-btn admin-tab-btn" data-tab="tab-tables">🪑 Masalar</button>
+                        <button class="nav-btn admin-tab-btn" data-tab="tab-menu">🍔 Menü & Ürünler</button>
+                    </nav>
+                </div>
+
+                <!-- Sağ İçerik Alanı -->
+                <div class="admin-content" style="flex: 1; overflow-y: auto; padding: 32px;">
+                    
+                    <!-- Anlık Sipariş Logları Sekmesi -->
+                    <div id="tab-item-logs" class="admin-tab-content" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
+                            <h2 style="color: var(--accent-orange); margin:0;">🧾 ANLIK SİPARİŞ LOGLARI</h2>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input type="datetime-local" id="log-start-date" class="form-input" style="width: auto;">
+                                <span> - </span>
+                                <input type="datetime-local" id="log-end-date" class="form-input" style="width: auto;">
+                                <button id="btn-fetch-logs" class="btn btn-primary">Filtrele</button>
+                            </div>
+                        </div>
+                        <p style="color: #888; margin-bottom: 16px; font-size: 13px;">Ödeme beklenmeksizin, ürün masaya girildiği anda kaydedilir. Personel takibi için kullanın.</p>
+                        <div style="background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); overflow-x: auto; max-height: 600px; overflow-y: auto;">
+                            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                                <thead style="background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border-color); position: sticky; top: 0;">
+                                    <tr>
+                                        <th style="padding: 10px;">Adisyon</th>
+                                        <th style="padding: 10px;">Masa</th>
+                                        <th style="padding: 10px;">Personel</th>
+                                        <th style="padding: 10px;">Ürün</th>
+                                        <th style="padding: 10px; text-align:right;">Adet</th>
+                                        <th style="padding: 10px; text-align:right;">Tutar</th>
+                                        <th style="padding: 10px;">Not</th>
+                                        <th style="padding: 10px;">Tarih & Saat</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="item-logs-table">
+                                    <tr><td colspan="8" style="padding:20px; text-align:center; color:#888;">Tarih seçip filtreleyin veya sayfa açılınca bugün otomatik yüklenecek</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Raporlar Sekmesi (GÜNLÜK SATIŞ ÖZETİ) -->
+                    <div id="tab-reports" class="admin-tab-content active" style="display: block;">
+                        <!-- Başlık ve Filtre -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
+                            <h2 style="color: var(--accent-orange); margin:0;">GÜNLÜK SATIŞ ÖZETİ</h2>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input type="datetime-local" id="report-start-date" class="form-input" style="width: auto;">
+                                <span> - </span>
+                                <input type="datetime-local" id="report-end-date" class="form-input" style="width: auto;">
+                                <button id="btn-fetch-reports" class="btn btn-primary" style="background-color: var(--btn-primary);">Zaman Aralığı</button>
+                            </div>
+                        </div>
+
+                        <!-- Özet Kartları (Servis, Ödeme, ÜrünSatış) -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+                            
+                            <!-- Sol: Servis / Sipariş Özeti -->
+                            <div style="background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); padding: 16px;">
+                                <h3 style="color: var(--accent-orange); border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 16px;">Servis/Sipariş Özeti</h3>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span>Masa Servis</span>
+                                    <span id="rep-total-masa">0.00</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #888;">
+                                    <span>Paket Ser. (Gel-Al)</span>
+                                    <span>0.00</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); font-size: 20px; font-weight: bold; color: var(--accent-green);">
+                                    <span>Toplam</span>
+                                    <span id="rep-servis-toplam">0.00</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Sağ: Ödeme Özeti -->
+                            <div style="background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); padding: 16px;">
+                                <h3 style="color: var(--accent-orange); border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 16px;">Ödeme Özeti</h3>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span>Nakit</span><span id="rep-pay-cash">0.00</span></div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span>Kredi</span><span id="rep-pay-cc">0.00</span></div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span>Yemek Çeki</span><span id="rep-pay-meal">0.00</span></div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span>Cari / Veresiye</span><span id="rep-pay-veresiye">0.00</span></div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: var(--accent-red);"><span>İskonto</span><span id="rep-pay-discount">0.00</span></div>
+                                <div style="display: flex; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);"><span>Net Satışlar</span><span id="rep-net-satis">0.00</span></div>
+                                
+                                <div style="display: flex; justify-content: space-between; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); font-size: 20px; font-weight: bold; color: var(--accent-green);">
+                                    <span>Genel Toplam</span>
+                                    <span id="rep-genel-toplam">0.00</span>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Satış Log Tablosu (Ürün Ürün Döküm) -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px;">
+                            <h3 style="margin: 0; color: #aaa;">Satış Logları (Personel / Ürün Bazlı Döküm)</h3>
+                        </div>
+
+                        <div style="background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); overflow-x: auto; max-height: 360px; overflow-y: auto;">
+                            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                                <thead style="background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border-color); position: sticky; top: 0;">
+                                    <tr>
+                                        <th style="padding: 10px;">Adisyon</th>
+                                        <th style="padding: 10px;">Masa</th>
+                                        <th style="padding: 10px;">Personel</th>
+                                        <th style="padding: 10px;">Ürün</th>
+                                        <th style="padding: 10px;">Kategori</th>
+                                        <th style="padding: 10px; text-align:right;">Adet</th>
+                                        <th style="padding: 10px; text-align:right;">Tutar</th>
+                                        <th style="padding: 10px;">Tarih</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rep-orders-table">
+                                    <!-- JS Doldurur -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Ürün Satış Özeti (Her Zaman Görünür) -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 24px; margin-bottom: 12px;">
+                            <h3 style="margin: 0; color: #aaa;">Ürün Bazlı Satış Özeti (Ne Kadar Satıldı)</h3>
+                        </div>
+                        <div style="background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); overflow-x: auto; max-height: 300px; overflow-y: auto;">
+                            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                                <thead style="background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border-color); position: sticky; top: 0;">
+                                    <tr>
+                                        <th style="padding: 10px;">Ürün Adı</th>
+                                        <th style="padding: 10px;">Kategori</th>
+                                        <th style="padding: 10px; text-align:right;">Toplam Adet</th>
+                                        <th style="padding: 10px; text-align:right;">Toplam Tutar</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rep-products-table">
+                                    <tr><td colspan="4" style="padding:16px; color:#888; text-align:center;">Tarih seçip "Zaman Aralığı" tuşuna basın</td></tr>
+                                </tbody>
+                            </table>
+                            <div style="padding: 12px 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; font-weight: bold; color: var(--accent-green);">
+                                <span>Toplam: <span id="rep-prod-total-qty">0</span> Adet</span>
+                                <span><span id="rep-prod-total-price">0.00</span> ₺</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Müşteriler Sekmesi -->
+                    <div id="tab-customers" class="admin-tab-content" style="display: none;">
+                        <div class="view-header" style="justify-content: space-between; margin-bottom: 24px;">
+                            <h2>📓 Müşteriler / Cari Defteri</h2>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="new-cust-name" class="form-input" placeholder="Müşteri Adı / Soyadı">
+                                <input type="text" id="new-cust-phone" class="form-input" placeholder="Telefon (Opsiyonel)">
+                                <button id="btn-add-cust" class="btn btn-primary">YENİ EKLE</button>
+                            </div>
+                        </div>
+                        <div class="admin-card" style="max-width: 100%;">
+                            <h3>Borçlu / Kayıtlı Müşteriler</h3>
+                            <div id="customers-list" style="display: grid; gap: 12px; margin-top: 16px;">
+                                <div style="color: #aaa;">Yükleniyor...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Personeller Sekmesi -->
+                    <div id="tab-users" class="admin-tab-content" style="display: none;">
+                        <h2 style="margin-bottom: 24px;">👥 Personel Listesi</h2>
+                        <div class="admin-card" style="max-width: 600px;">
+                            <h3>Kayıtlı Kullanıcılar</h3>
+                            <div id="admin-user-list" class="admin-list"></div>
+                            <div style="margin-top: 16px; display: flex; gap: 8px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                                <input type="text" id="new-user-name" class="form-input" placeholder="Kul. Adı" style="flex: 1;">
+                                <input type="password" id="new-user-pass" class="form-input" placeholder="Şifre" style="flex: 1;">
+                                <select id="new-user-role" class="form-input" style="width: 150px;">
+                                    <option value="staff">Garson</option>
+                                    <option value="admin">Yönetici</option>
+                                </select>
+                                <button id="btn-add-user" class="btn btn-primary btn-small">Ekle</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Masalar Sekmesi -->
+                    <div id="tab-tables" class="admin-tab-content" style="display: none;">
+                        <h2 style="margin-bottom: 24px;">🪑 Masalar / Salonlar</h2>
+                        <div class="admin-card" style="max-width: 500px;">
+                            <h3>Arayüz Masaları</h3>
+                            <div id="admin-table-list" class="admin-list"></div>
+                            <div style="margin-top: 16px; display: flex; gap: 8px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                                <input type="text" id="new-table-name" class="form-input" placeholder="Yeni Masa Adı (Örn: Bahçe 4)" style="flex: 1;">
+                                <button id="btn-add-table" class="btn btn-primary btn-small">Masa Ekle</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Menü Sekmesi -->
+                    <div id="tab-menu" class="admin-tab-content" style="display: none;">
+                        <h2 style="margin-bottom: 24px;">🍔 Menü & Ürün Ayarları</h2>
+                        <div class="admin-grid">
+                            <div class="admin-card">
+                                <h3>Mevcut Kategoriler</h3>
+                                <div id="admin-category-list" class="admin-list"></div>
+                                <div style="margin-top: 16px; display: flex; gap: 8px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                                    <input type="text" id="new-cat-name" class="form-input" placeholder="Yeni Kategori Adı" style="flex: 1;">
+                                    <button id="btn-add-cat" class="btn btn-primary btn-small">Ekle</button>
+                                </div>
+                            </div>
+                            <div class="admin-card">
+                                <h3>Yeni Ürün Girişi</h3>
+                                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+                                    <select id="new-prod-cat" class="form-input"></select>
+                                    <input type="text" id="new-prod-name" class="form-input" placeholder="Ürün Adı">
+                                    <input type="number" id="new-prod-price" class="form-input" placeholder="Fiyat ₺">
+                                    <button id="btn-add-prod" class="btn btn-primary btn-large" style="margin-top: 8px;">Ürünü Menüye Ekle</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="admin-grid" style="margin-top: 24px;">
+                            <div class="admin-card" style="grid-column: span 2;">
+                                <h3>Menüdeki Mevcut Ürünler</h3>
+                                <div id="admin-products-list" class="admin-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grafik & Analiz Sekmesi -->
+                    <div id="tab-charts" class="admin-tab-content" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
+                            <h2 style="color: var(--accent-orange); margin:0;">📈 GRAFİK & ANALİZ</h2>
+                            <div style="display: flex; gap: 12px; align-items: center;">
+                                <select id="global-chart-type" class="form-input" style="width: auto;">
+                                    <option value="bar">Sütun Grafik (Bar)</option>
+                                    <option value="line">Çizgi Grafik (Line)</option>
+                                    <option value="pie">Pasta Grafik (Pie)</option>
+                                    <option value="doughnut">Halka Grafik (Doughnut)</option>
+                                </select>
+                                <input type="datetime-local" id="chart-start-date" class="form-input" style="width: auto;">
+                                <span> - </span>
+                                <input type="datetime-local" id="chart-end-date" class="form-input" style="width: auto;">
+                                <button id="btn-fetch-charts" class="btn btn-primary">Yenile</button>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+                            <!-- Ciro Trendi -->
+                            <div style="background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); padding: 16px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 16px;">
+                                    <h3 style="color: var(--accent-orange); margin: 0;">Ciro Trendi</h3>
+                                    <select id="trend-period-select-chart" class="form-input" style="width: auto; padding: 4px 8px;">
+                                        <option value="daily">Günlük</option>
+                                        <option value="weekly">Haftalık</option>
+                                        <option value="monthly">Aylık</option>
+                                    </select>
+                                </div>
+                                <div style="position: relative; height: 250px; width: 100%;">
+                                    <canvas id="revenueTrendCanvas"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Personel Satış Cirosu -->
+                            <div style="background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); padding: 16px;">
+                                <h3 style="color: var(--accent-orange); border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 16px;">Personel Satış Cirosu</h3>
+                                <div style="position: relative; height: 250px; width: 100%;">
+                                    <canvas id="staffRevenueCanvas"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- En Çok Satan Ürünler -->
+                            <div style="background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); padding: 16px; grid-column: span 2;">
+                                <h3 style="color: var(--accent-orange); border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 16px;">En Çok Satan Ürünler</h3>
+                                <div style="position: relative; height: 300px; width: 100%;">
+                                    <canvas id="productPieCanvas"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Personel Değiştirme Overlay -->
+        <div id="switch-user-overlay" style="display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 200; flex-direction: column; justify-content: center; align-items: center; padding: 20px;">
+            <div style="background: var(--bg-card); padding: 30px; border-radius: 12px; border: 1px solid var(--border-color); width: 100%; max-width: 400px;">
+                <h2 style="font-size: 20px; margin-bottom: 20px; color: white; text-align: center;">Personel Değiştir</h2>
+                <div id="quick-login-users" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                    <div class="loading" style="grid-column: span 2; text-align: center; color: #888;">Personeller Yükleniyor...</div>
+                </div>
+                <button id="btn-cancel-switch" class="btn btn-secondary btn-large" style="width: 100%;">İptal</button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Hata ve Bildirim Tasarımı -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Chart.js Kütüphanesi -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
