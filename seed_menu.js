@@ -294,10 +294,10 @@ async function seedDatabase() {
 
             // Insert products
             if (catData.products.length > 0) {
-                const productValues = catData.products.map(p => [catId, p.name, p.price, 1]);
+                const productValues = catData.products.map(p => [catId, p.name, p.price]);
                 
                 await connection.query(
-                    'INSERT INTO products (category_id, product_name, price, is_active) VALUES ?',
+                    'INSERT INTO products (category_id, product_name, price) VALUES ?',
                     [productValues]
                 );
                 
