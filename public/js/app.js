@@ -272,6 +272,24 @@ function setupEventListeners() {
         }
     });
 
+    // Boş Masayı Kapatma (Yanlışlıkla açıldıysa)
+    document.getElementById('btn-cancel-empty').addEventListener('click', async () => {
+        if (!confirm('Adisyon tamamen iptal edilip masa kapatılacak. Emin misiniz?')) return;
+        try {
+            const res = await secureFetch(`/api/orders/${state.currentOrder.id}/cancel-empty`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                showToast('Masa kapatıldı', 'success');
+                switchView('tables-view');
+                fetchTables();
+            } else {
+                showToast('Kapatılamadı: ' + data.error, 'error');
+            }
+        } catch (e) {
+            showToast('Bağlantı hatası', 'error');
+        }
+    });
+
     // Boş masadan çık
     btnCancelOrder.addEventListener('click', () => {
         emptyTableOverlay.style.display = 'none';
@@ -776,6 +794,15 @@ async function fetchActiveOrder(tableId) {
     // Taşı butonunu göster/gizle
     const moveBtn = document.getElementById('btn-move-items');
     if(moveBtn) moveBtn.style.display = (state.currentOrder.items && state.currentOrder.items.length > 0) ? 'inline-block' : 'none';
+    
+    // Boş Masayı Kapat butonunu göster/gizle
+    const cancelEmptyBtn = document.getElementById('btn-cancel-empty');
+    if (cancelEmptyBtn) {
+        // Sepette henüz kaydedilmemiş ürün (orderCart) VEYA adisyonda kaydedilmiş ürün (items) yoksa iptal butonu görünsün
+        const hasSavedItems = state.currentOrder.items && state.currentOrder.items.length > 0;
+        cancelEmptyBtn.style.display = (!hasSavedItems) ? 'inline-block' : 'none';
+    }
+
     renderReceipt();
 }
 
@@ -871,6 +898,13 @@ function renderCart() {
         `;
         div.appendChild(row);
     });
+    
+    // Sepette ürün varsa iptal butonunu gizle
+    const cancelEmptyBtn = document.getElementById('btn-cancel-empty');
+    if (cancelEmptyBtn) {
+        const hasSavedItems = state.currentOrder && state.currentOrder.items && state.currentOrder.items.length > 0;
+        cancelEmptyBtn.style.display = (!hasSavedItems && orderCart.length === 0) ? 'inline-block' : 'none';
+    }
 }
 
 window.removeFromCart = function(idx) {

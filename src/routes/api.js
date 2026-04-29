@@ -452,6 +452,38 @@ router.post('/orders/:order_id/pay', async (req, res) => {
     }
 });
 
+// Yanlışlıkla açılan boş masayı kapatma
+router.delete('/orders/:order_id/cancel-empty', async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+        const { order_id } = req.params;
+        await connection.beginTransaction();
+
+        // Ürün veya ödeme var mı kontrol et
+        const [items] = await connection.query('SELECT count(*) as c FROM order_items WHERE order_id = ?', [order_id]);
+        const [payments] = await connection.query('SELECT count(*) as c FROM payments WHERE order_id = ?', [order_id]);
+
+        if (items[0].c > 0 || payments[0].c > 0) {
+            throw new Error("Masa boş değil, ürün veya ödeme içeriyor.");
+        }
+
+        const [order] = await connection.query('SELECT table_id FROM orders WHERE id = ?', [order_id]);
+        if (order.length > 0) {
+            await connection.query('DELETE FROM orders WHERE id = ?', [order_id]);
+            await connection.query('UPDATE tables SET status = "empty" WHERE id = ?', [order[0].table_id]);
+        }
+
+        await connection.commit();
+        res.json({ success: true });
+    } catch (error) {
+        await connection.rollback();
+        console.error('[API] /cancel-empty hatası:', error.message);
+        res.status(400).json({ success: false, error: error.message || 'Masa kapatılamadı' });
+    } finally {
+        connection.release();
+    }
+});
+
 // Masa Taşıma (Table Transfer)
 router.post('/orders/:order_id/transfer', async (req, res) => {
     const connection = await pool.getConnection();
