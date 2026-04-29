@@ -18,7 +18,10 @@ router.get('/tables', async (req, res) => {
                    (SELECT MAX(oi.created_at) 
                     FROM orders o 
                     JOIN order_items oi ON o.id = oi.order_id 
-                    WHERE o.table_id = t.id AND o.status = 'open') as last_order_time
+                    WHERE o.table_id = t.id AND o.status = 'open') as last_order_time,
+                   (SELECT total_price FROM orders WHERE table_id = t.id AND status = 'open' LIMIT 1) as total_price,
+                   (SELECT discount FROM orders WHERE table_id = t.id AND status = 'open' LIMIT 1) as discount,
+                   (SELECT paid_amount FROM orders WHERE table_id = t.id AND status = 'open' LIMIT 1) as paid_amount
             FROM tables t 
             ORDER BY t.id ASC
         `);
@@ -240,6 +243,56 @@ router.post('/orders/:order_id/print-slip', async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         console.error('[API] print-slip hatası:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Hesap Pusulası Yazdırma (Ödeme ekranından)
+router.post('/orders/:order_id/print-bill', async (req, res) => {
+    try {
+        const { order_id } = req.params;
+        const user_id = req.user ? req.user.id : null;
+
+        // Sipariş ve masa bilgisini çek
+        const [orderRows] = await pool.query(`
+            SELECT o.*, t.table_name 
+            FROM orders o 
+            JOIN tables t ON o.table_id = t.id 
+            WHERE o.id = ?
+        `, [order_id]);
+        
+        if (orderRows.length === 0) return res.json({ success: false, error: 'Sipariş bulunamadı' });
+        
+        const order = orderRows[0];
+        const tableName = order.table_name;
+        
+        // Ürünleri çek
+        const [items] = await pool.query(`
+            SELECT p.product_name, oi.quantity, oi.price_at_time as price
+            FROM order_items oi
+            JOIN products p ON oi.product_id = p.id
+            WHERE oi.order_id = ?
+        `, [order_id]);
+
+        let addedByName = 'Sistem';
+        if (user_id) {
+            const [userRows] = await pool.query('SELECT username FROM users WHERE id = ?', [user_id]);
+            if (userRows.length > 0) addedByName = userRows[0].username;
+        }
+
+        const totals = {
+            total_price: parseFloat(order.total_price || 0),
+            discount: parseFloat(order.discount || 0),
+            paid_amount: parseFloat(order.paid_amount || 0)
+        };
+
+        // Fiş Yazdır (Arka planda)
+        const { printBillSlip } = require('../services/printer');
+        printBillSlip(order_id, tableName, addedByName, items, totals).catch(err => console.error("Arkaplan yazdırma hatası:", err));
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[API] print-bill hatası:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });

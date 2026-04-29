@@ -231,6 +231,28 @@ function setupEventListeners() {
         switchView('order-view');
     });
 
+    // Hesap Yazdır
+    document.getElementById('btn-print-bill').addEventListener('click', async () => {
+        if (!state.currentOrder) return;
+        const btn = document.getElementById('btn-print-bill');
+        btn.disabled = true;
+        btn.textContent = "Yazdırılıyor...";
+        try {
+            const res = await secureFetch(`/api/orders/${state.currentOrder.id}/print-bill`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                showToast('Hesap pusulası yazdırıldı', 'success');
+            } else {
+                showToast('Yazıcı hatası: ' + data.error, 'error');
+            }
+        } catch (e) {
+            showToast('Bağlantı hatası', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = "🖨️ Hesap Yazdır";
+        }
+    });
+
     // Kapatma İşlemleri Gelişmiş POS ekranına taşındı
 
     // Sipariş (Adisyon) Başlatma
@@ -709,7 +731,15 @@ function renderTables() {
             }
         }
         
-        card.innerHTML = `<h3>${table.table_name}</h3><div class="table-status">${statusText}</div>`;
+        let extraHtml = '';
+        if (table.status !== 'empty' && table.total_price !== undefined && table.total_price !== null) {
+            const rem = parseFloat(table.total_price) - parseFloat(table.discount || 0) - parseFloat(table.paid_amount || 0);
+            if (rem > 0) {
+                extraHtml = `<div style="margin-top:8px; font-size:16px; font-weight:bold; color:#ffdd59;">₺${rem.toFixed(2)}</div>`;
+            }
+        }
+        
+        card.innerHTML = `<h3>${table.table_name}</h3><div class="table-status">${statusText}</div>${extraHtml}`;
         card.addEventListener('click', () => openTable(table));
         tablesGrid.appendChild(card);
     });
@@ -1461,6 +1491,7 @@ async function fetchChartData() {
         const dataSum = await resSum.json();
         
         if (dataSum.success && dataSum.orders) {
+            window.currentReportOrders = dataSum.orders;
             const staffSales = {};
             dataSum.orders.forEach(o => {
                 const isCancel = o.eylem === 'cancel';
@@ -1557,9 +1588,64 @@ function updateStaffChart(staffSalesObj, type) {
                 borderWidth: 1, borderColor: '#111'
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#ccc', font: {size: 11} } } } }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            plugins: { legend: { position: 'right', labels: { color: '#ccc', font: {size: 11} } } },
+            onClick: (event, elements) => {
+                if (elements.length > 0) {
+                    const idx = elements[0].index;
+                    const label = staffChartInstance.data.labels[idx];
+                    showStaffDetailsModal(label);
+                }
+            }
+        }
     });
 }
+
+function showStaffDetailsModal(staffName) {
+    if (!window.currentReportOrders) return;
+    
+    document.getElementById('staff-details-title').textContent = staffName + ' - Satış Detayları';
+    const tbody = document.getElementById('staff-details-tbody');
+    const totalEl = document.getElementById('staff-details-total');
+    tbody.innerHTML = '';
+    
+    let total = 0;
+    
+    // Filtrele: Bu personelin ve 'cancel' olmayan satırları
+    const staffOrders = window.currentReportOrders.filter(o => o.operator === staffName && o.eylem !== 'cancel');
+    
+    staffOrders.forEach(o => {
+        const lineTotal = parseFloat(o.line_total);
+        total += lineTotal;
+        
+        const dateObj = new Date(o.kapanis || o.tarih || new Date());
+        const timeStr = dateObj.getHours().toString().padStart(2, '0') + ':' + dateObj.getMinutes().toString().padStart(2, '0');
+        
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid #333';
+        tr.innerHTML = `
+            <td style="padding: 8px;">${timeStr}</td>
+            <td style="padding: 8px;">${o.masa || '-'}</td>
+            <td style="padding: 8px;">${o.product_name || o.urun || '?'}</td>
+            <td style="padding: 8px; text-align: center;">${o.quantity || o.adet || 1}</td>
+            <td style="padding: 8px; text-align: right; color:#2ecc71;">₺${lineTotal.toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+    
+    if (staffOrders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding:16px; text-align:center; color:#888;">Satış bulunamadı.</td></tr>';
+    }
+    
+    totalEl.textContent = '₺' + total.toFixed(2);
+    document.getElementById('staff-details-modal').style.display = 'flex';
+}
+
+document.getElementById('btn-close-staff-details').addEventListener('click', () => {
+    document.getElementById('staff-details-modal').style.display = 'none';
+});
 
 // ========================
 // UTILS

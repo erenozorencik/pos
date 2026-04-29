@@ -207,8 +207,9 @@
                         <!-- JS ile doldurulacak -->
                     </div>
                     <div style="padding: 12px; border-top: 1px solid var(--border-color); display: flex; gap: 8px;">
-                        <button class="btn btn-secondary" style="flex: 1; padding: 12px;" id="btn-pay-cancel">Ana Panele Dön</button>
-                        <button class="btn btn-primary" style="flex: 1; padding: 12px; background: var(--accent-orange);" id="btn-transfer-items">Masaya Taşı (Aktar)</button>
+                        <button class="btn btn-secondary" style="flex: 1; padding: 12px;" id="btn-pay-cancel">İptal / Çıkış</button>
+                        <button class="btn btn-primary" style="flex: 1; padding: 12px; background: #9b59b6;" id="btn-print-bill">🖨️ Hesap Yazdır</button>
+                        <button class="btn btn-primary" style="flex: 1; padding: 12px; background: var(--accent-orange);" id="btn-transfer-items">Masaya Aktar</button>
                     </div>
 
                     <!-- Parçalı Ürün Taşıma Overlay -->
@@ -614,6 +615,35 @@
         </div>
 
     </main>
+
+    <!-- Personel Satış Detayları Overlay -->
+    <div id="staff-details-modal" style="display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 200; flex-direction: column; justify-content: center; align-items: center; padding: 20px;">
+        <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); width: 100%; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 12px;">
+                <h2 id="staff-details-title" style="font-size: 20px; margin: 0; color: var(--accent-orange);">Personel Satış Detayları</h2>
+                <button id="btn-close-staff-details" style="background: transparent; border: none; color: white; font-size: 24px; cursor: pointer;">&times;</button>
+            </div>
+            <div style="flex: 1; overflow-y: auto; padding-right: 8px;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid #444; color: #888;">
+                            <th style="padding: 8px;">Saat</th>
+                            <th style="padding: 8px;">Masa</th>
+                            <th style="padding: 8px;">Ürün</th>
+                            <th style="padding: 8px; text-align: center;">Adet</th>
+                            <th style="padding: 8px; text-align: right;">Tutar</th>
+                        </tr>
+                    </thead>
+                    <tbody id="staff-details-tbody">
+                        <!-- JS ile doldurulacak -->
+                    </tbody>
+                </table>
+            </div>
+            <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 12px; text-align: right; font-size: 18px; font-weight: bold; color: #f1c40f;">
+                Toplam: <span id="staff-details-total">₺0.00</span>
+            </div>
+        </div>
+    </div>
 
     <!-- Hata ve Bildirim Tasarımı -->
     <div id="toast-container" class="toast-container"></div>

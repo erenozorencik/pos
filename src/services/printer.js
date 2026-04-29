@@ -118,4 +118,115 @@ async function printOrderSlip(orderId, tableName, addedBy, items) {
     }
 }
 
-module.exports = { printOrderSlip };
+/**
+ * Müşteriye verilecek Hesap Pusulası
+ */
+async function printBillSlip(orderId, tableName, addedBy, items, totals) {
+    if (!process.env.PRINTER_IP || process.env.PRINTER_IP === '192.168.1.100') {
+        console.warn('[YAZICI] Printer IP ayarlanmamis. Hesap fisi basilamadi.');
+        return false;
+    }
+
+    try {
+        var printer = new ThermalPrinter({
+            type: PrinterTypes.EPSON,
+            interface: 'tcp://' + process.env.PRINTER_IP + ':' + (process.env.PRINTER_PORT || 9100),
+            characterSet: 'PC857_TURKISH',
+            removeSpecialCharacters: false,
+            lineCharacter: '-',
+        });
+
+        var isConnected = await printer.isPrinterConnected();
+        if (!isConnected) {
+            console.error('[YAZICI] Yaziciya baglanilamadi. IP:', process.env.PRINTER_IP);
+            return false;
+        }
+
+        // === BASLIK ===
+        printer.alignCenter();
+        printer.setTextSize(1, 1);
+        printer.bold(true);
+        printer.println('*** HESAP PUSULASI ***');
+        printer.setTextNormal();
+        printer.bold(false);
+        printer.drawLine();
+
+        // === BILGILER ===
+        printer.alignLeft();
+        printer.tableCustom([
+            { text: 'Adisyon', align: 'LEFT', width: 0.3 },
+            { text: ': #' + orderId, align: 'LEFT', width: 0.7 }
+        ]);
+        printer.tableCustom([
+            { text: 'Masa', align: 'LEFT', width: 0.3 },
+            { text: ': ' + tableName, align: 'LEFT', width: 0.7 }
+        ]);
+        var now = new Date();
+        var formattedDate = now.getDate().toString().padStart(2, '0') + '.' +
+            (now.getMonth() + 1).toString().padStart(2, '0') + '.' +
+            now.getFullYear() + ' ' +
+            now.getHours().toString().padStart(2, '0') + ':' +
+            now.getMinutes().toString().padStart(2, '0');
+        printer.tableCustom([
+            { text: 'Zaman', align: 'LEFT', width: 0.3 },
+            { text: ': ' + formattedDate, align: 'LEFT', width: 0.7 }
+        ]);
+        printer.drawLine();
+
+        // === URUN LISTESI (Fiyatli) ===
+        printer.alignLeft();
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            var lineTotal = (item.quantity * item.price).toFixed(2);
+            printer.tableCustom([
+                { text: item.quantity + 'x ' + item.product_name, align: 'LEFT', width: 0.75 },
+                { text: lineTotal, align: 'RIGHT', width: 0.25 }
+            ]);
+        }
+        printer.drawLine();
+
+        // === TOPLAMLAR ===
+        printer.alignRight();
+        printer.bold(true);
+        
+        var araToplam = totals.total_price.toFixed(2);
+        printer.tableCustom([
+            { text: 'ARA TOPLAM :', align: 'RIGHT', width: 0.7 },
+            { text: araToplam, align: 'RIGHT', width: 0.3 }
+        ]);
+
+        if (totals.discount > 0) {
+            printer.tableCustom([
+                { text: 'ISKONTO :', align: 'RIGHT', width: 0.7 },
+                { text: '-' + totals.discount.toFixed(2), align: 'RIGHT', width: 0.3 }
+            ]);
+        }
+
+        var remaining = totals.total_price - totals.discount - totals.paid_amount;
+        printer.setTextSize(0, 1); // Kalan tutari biraz daha belirgin yap
+        printer.tableCustom([
+            { text: 'KALAN TUTAR:', align: 'RIGHT', width: 0.6 },
+            { text: remaining.toFixed(2), align: 'RIGHT', width: 0.4 }
+        ]);
+        printer.setTextNormal();
+        printer.bold(false);
+
+        // Alt bosluk ve kesme
+        printer.newLine();
+        printer.alignCenter();
+        printer.println('Bizi tercih ettiginiz icin tesekkur ederiz.');
+        printer.newLine();
+        printer.newLine();
+        printer.newLine();
+        printer.cut();
+
+        await printer.execute();
+        console.log('[YAZICI] Hesap fisi basildi -> Masa: ' + tableName);
+        return true;
+    } catch (error) {
+        console.error('[YAZICI] Hesap fisi basilirken hata:', error.message);
+        return false;
+    }
+}
+
+module.exports = { printOrderSlip, printBillSlip };
