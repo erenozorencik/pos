@@ -1236,7 +1236,7 @@ async function loadAdminDashboard() {
     state.menu.forEach(c => {
         // Kategori listesi
         const div = document.createElement('div'); div.className = 'list-item';
-        div.innerHTML = `<span>${c.category_name}</span>`;
+        div.innerHTML = `<span>${c.category_name}</span> <button onclick="deleteResource('/api/admin/categories/${c.id}')" style="background:var(--accent-red); color:white; border:none; border-radius:4px; padding:4px 8px; font-size:12px; cursor:pointer;">Sil</button>`;
         adminCatList.appendChild(div);
         
         const opt = document.createElement('option'); opt.value = c.id; opt.textContent = c.category_name;

@@ -82,6 +82,18 @@ router.post('/categories', async (req, res) => {
     }
 });
 
+router.delete('/categories/:id', async (req, res) => {
+    try {
+        // Not: Eğer kategoride ürün varsa MySQL foreign key hatası verebilir (veya biz ürünleri de silmeliyiz)
+        // Kullanıcı tüm kategoriyi silmek istiyorsa muhtemelen içindeki ürünleri de silmek istiyordur.
+        // Ama raporlarda kullanılan ürünler varsa hata alabiliriz.
+        await pool.query('DELETE FROM categories WHERE id = ?', [req.params.id]);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Kategori silinemedi (Kategoriye bağlı ürünler veya eski satışlar olabilir)' });
+    }
+});
+
 router.post('/products', async (req, res) => {
     try {
         const { category_id, product_name, price } = req.body;
