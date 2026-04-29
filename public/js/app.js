@@ -899,6 +899,23 @@ document.getElementById('btn-save-cart').addEventListener('click', async () => {
         const data = await res.json();
         if(!data.success) { allOk = false; showToast('Ürün eklenemedi: ' + entry.product.product_name, 'error'); }
     }
+
+    // Tüm ürünler kaydedildikten sonra TEK FİŞ bas
+    if (allOk && orderCart.length > 0) {
+        try {
+            const printItems = orderCart.map(e => ({
+                product_name: e.product.product_name,
+                quantity: e.qty,
+                note: e.note || ''
+            }));
+            secureFetch(`/api/orders/${state.currentOrder.id}/print-slip`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: printItems })
+            }).catch(err => console.error('Fiş hatası:', err));
+        } catch(e) { console.error('Fiş gönderim hatası:', e); }
+    }
+
     orderCart = [];
     renderCart();
     document.getElementById('btn-save-cart').disabled = false;

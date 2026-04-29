@@ -200,14 +200,7 @@ router.post('/orders/:order_id/items', async (req, res) => {
         
         await connection.commit();
 
-        // Fiş Yazdırma İşlemini Tetikle (Arka planda çalışır, response'u bekletmez)
-        try {
-            const { printOrderSlip } = require('../services/printer');
-            const itemsToPrint = [{ quantity, product_name, note: itemNote }];
-            printOrderSlip(order_id, tableName, addedByName, itemsToPrint).catch(err => console.error("Arkaplan yazdırma hatası:", err));
-        } catch (printErr) {
-            console.error('[API] Yazıcı modülü hatası:', printErr.message);
-        }
+        // NOT: Fiş yazdırma artık tek tek değil, toplu olarak /orders/:id/print-slip endpoint'i ile yapılıyor.
 
         res.json({ success: true });
     } catch (error) {
@@ -216,6 +209,38 @@ router.post('/orders/:order_id/items', async (req, res) => {
         res.status(500).json({ success: false, error: error.message || 'Veritabanı hatası' });
     } finally {
         connection.release();
+    }
+});
+
+// Toplu Fiş Yazdırma (Sepetteki tüm ürünler tek fiş)
+router.post('/orders/:order_id/print-slip', async (req, res) => {
+    try {
+        const { order_id } = req.params;
+        const { items } = req.body; // [{product_name, quantity, note}]
+        const user_id = req.user ? req.user.id : null;
+
+        // Masa ve personel bilgisi
+        const [orderRows] = await pool.query('SELECT table_id FROM orders WHERE id = ?', [order_id]);
+        if (orderRows.length === 0) return res.json({ success: false, error: 'Sipariş bulunamadı' });
+        const table_id = orderRows[0].table_id;
+
+        const [tableRows] = await pool.query('SELECT table_name FROM tables WHERE id = ?', [table_id]);
+        const tableName = tableRows.length > 0 ? tableRows[0].table_name : 'Masa ' + table_id;
+
+        let addedByName = 'Sistem';
+        if (user_id) {
+            const [userRows] = await pool.query('SELECT username FROM users WHERE id = ?', [user_id]);
+            if (userRows.length > 0) addedByName = userRows[0].username;
+        }
+
+        // Fiş Yazdır (Arka planda)
+        const { printOrderSlip } = require('../services/printer');
+        printOrderSlip(order_id, tableName, addedByName, items).catch(err => console.error("Arkaplan yazdırma hatası:", err));
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[API] print-slip hatası:', error.message);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 

@@ -2,11 +2,11 @@ const ThermalPrinter = require('node-thermal-printer').printer;
 const PrinterTypes = require('node-thermal-printer').types;
 
 /**
- * Yeni bir fiş çıktısı gönderir.
+ * Yeni bir fiş çıktısı gönderir — TÜM ürünler tek fişte basılır.
  * @param {string} orderId - Adisyon/Sipariş No
  * @param {string} tableName - Masa Adı
  * @param {string} addedBy - Ekleyen Personel Adı
- * @param {Array} items - Eklenen ürünlerin dizisi (örn: [{quantity: 1, product_name: 'ÇAY'}])
+ * @param {Array} items - Eklenen ürünlerin dizisi (örn: [{quantity: 2, product_name: 'ÇAY', note: ''}])
  */
 async function printOrderSlip(orderId, tableName, addedBy, items) {
     if (!process.env.PRINTER_IP || process.env.PRINTER_IP === '192.168.1.100') {
@@ -16,33 +16,42 @@ async function printOrderSlip(orderId, tableName, addedBy, items) {
 
     try {
         let printer = new ThermalPrinter({
-            type: PrinterTypes.EPSON,      // Genelde piyasadaki Possify, Xprinter vb. cihazlar EPSON/ESC-POS kullanır
+            type: PrinterTypes.EPSON,      // Possify, Xprinter vb. cihazlar EPSON/ESC-POS kullanır
             interface: `tcp://${process.env.PRINTER_IP}:${process.env.PRINTER_PORT || 9100}`,
             characterSet: 'PC857_TURKISH', // Türkçe karakter desteği
             removeSpecialCharacters: false,
-            lineCharacter: "-",
+            lineCharacter: "=",
         });
 
-        // Bağlantı kontrolü (Opsiyonel ama hızlı patlamayı önler)
+        // Bağlantı kontrolü
         let isConnected = await printer.isPrinterConnected();
         if (!isConnected) {
-            console.error('[YAZICI] Yazıcıya bağlanılamadı. IP adresini ve bağlantısını kontrol edin:', process.env.PRINTER_IP);
+            console.error('[YAZICI] Yazıcıya bağlanılamadı. IP:', process.env.PRINTER_IP);
             return false;
         }
 
+        // === BİP SESİ (ESC/POS Buzzer komutu) ===
+        // ESC (BEL) - Çoğu ESC/POS yazıcıda çalışır
+        printer.append(Buffer.from([0x1B, 0x42, 0x03, 0x02])); // 3 kez, her biri 200ms
+
+        // === BAŞLIK ===
         printer.alignCenter();
+        printer.setTextSize(1, 1); // 2x büyük yazı
         printer.bold(true);
-        printer.println("YENI SIPARIS");
+        printer.println("** YENI SIPARIS **");
+        printer.setTextNormal();
         printer.bold(false);
         printer.drawLine();
 
+        // === BİLGİLER ===
         printer.alignLeft();
+        printer.bold(true);
         printer.tableCustom([
-            { text: "Adisyon", align: "LEFT", width: 0.3 },
-            { text: ": " + orderId, align: "LEFT", width: 0.7 }
+            { text: "Adisyon", align: "LEFT", width: 0.3, bold: true },
+            { text: ": #" + orderId, align: "LEFT", width: 0.7 }
         ]);
         printer.tableCustom([
-            { text: "Masa Adi", align: "LEFT", width: 0.3 },
+            { text: "Masa", align: "LEFT", width: 0.3, bold: true },
             { text: ": " + tableName, align: "LEFT", width: 0.7 }
         ]);
         
@@ -55,30 +64,42 @@ async function printOrderSlip(orderId, tableName, addedBy, items) {
             { text: ": " + formattedDate, align: "LEFT", width: 0.7 }
         ]);
         printer.tableCustom([
-            { text: "Gonderen", align: "LEFT", width: 0.3 },
+            { text: "Garson", align: "LEFT", width: 0.3 },
             { text: ": " + (addedBy || 'Sistem'), align: "LEFT", width: 0.7 }
         ]);
+        printer.bold(false);
         
         printer.drawLine();
         
-        // Ürün listesi
+        // === ÜRÜN LİSTESİ (Kalın ve büyük) ===
         printer.alignLeft();
+        printer.bold(true);
+        printer.setTextSize(0, 1); // Yüksekliği 2x (daha okunabilir)
+        
         for (let item of items) {
-            let itemText = `${item.quantity} x    ${item.product_name}`;
+            let itemText = `${item.quantity} x  ${item.product_name}`;
             printer.println(itemText);
             if (item.note) {
-                printer.println(`  * Not: ${item.note}`);
+                printer.setTextNormal();
+                printer.println(`   * ${item.note}`);
+                printer.bold(true);
+                printer.setTextSize(0, 1);
             }
         }
-
+        
+        printer.setTextNormal();
         printer.drawLine();
         
-        // Alt Kısımda Büyük Harflerle Masa Adı
+        // === ALT KISIM: BÜYÜK MASA ADI ===
         printer.alignCenter();
-        printer.setTextSize(1, 1); // Yazı tipini büyüt
+        printer.setTextSize(1, 1); // 2x2 büyük
         printer.bold(true);
         printer.println(tableName.toUpperCase());
-        printer.setTextNormal(); // Normal boyuta dön
+        printer.setTextNormal();
+        
+        // Toplam ürün sayısı
+        const totalQty = items.reduce((sum, i) => sum + (parseInt(i.quantity) || 1), 0);
+        printer.println(`Toplam: ${totalQty} kalem`);
         
         // Boşluk bırakıp kes
         printer.newLine();
@@ -88,10 +109,10 @@ async function printOrderSlip(orderId, tableName, addedBy, items) {
 
         // Yazıcıya gönder
         await printer.execute();
-        console.log(`[YAZICI] Fiş başarıyla basıldı -> Masa: ${tableName}, Adisyon: ${orderId}`);
+        console.log(`[YAZICI] Fiş basıldı -> Masa: ${tableName}, Adisyon: #${orderId}, ${items.length} kalem`);
         return true;
     } catch (error) {
-        console.error('[YAZICI] Fiş basılırken hata oluştu:', error.message);
+        console.error('[YAZICI] Fiş basılırken hata:', error.message);
         return false;
     }
 }
