@@ -446,6 +446,7 @@ function renderPosItems() {
                 <span>${item.product_name}</span>
                 <span style="text-align: right;">${paidQty}</span>
                 <span style="text-align: right;">₺${(paidQty * item.price_at_time).toFixed(2)}</span>
+                <span></span>
             `;
             list.appendChild(divPaid);
         }
@@ -463,9 +464,16 @@ function renderPosItems() {
                 <span>${item.product_name}</span>
                 <span style="text-align: right;">1</span>
                 <span style="text-align: right;">₺${parseFloat(item.price_at_time).toFixed(2)}</span>
+                <button class="btn-delete-pos-item" style="margin-left:auto; background:var(--accent-red); color:white; border:none; border-radius:4px; width:24px; height:24px; cursor:pointer; font-size:12px; line-height:1; display:flex; justify-content:center; align-items:center;">✕</button>
             `;
             
-            div.addEventListener('click', () => {
+            div.addEventListener('click', (e) => {
+                if(e.target.closest('.btn-delete-pos-item')) {
+                    e.stopPropagation();
+                    deleteOrderItem(state.currentOrder.id, item.id);
+                    return;
+                }
+                
                 if(isSelected) {
                     posSelectedItems = posSelectedItems.filter(x => x.uniqueId !== uniqueId);
                 } else {
@@ -1121,13 +1129,25 @@ function renderReceipt() {
 }
 
 window.deleteOrderItem = async function(orderId, itemId) {
-    if(!confirm('Bu ürünü adisyondan silmek istediğinize emin misiniz?')) return;
+    if(!confirm('Bu ürünü silmek istediğinize emin misiniz?')) return;
     try {
-        const res = await secureFetch(`/api/orders/${orderId}/items/${itemId}`, { method: 'DELETE' });
+        const res = await secureFetch(`/api/orders/${orderId}/items/${itemId}`, { 
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ quantity: 1 })
+        });
         const data = await res.json();
         if(data.success) {
             showToast('Ürün silindi', 'success');
             await fetchActiveOrder(state.currentTable.id);
+            // Eğer ödeme ekranındaysak ödeme ekranını da güncelle
+            if(document.getElementById('payment-view').style.display === 'flex') {
+                posSelectedItems = [];
+                posInputValue = "";
+                document.getElementById('pos-input-amount').value = "";
+                renderPosItems();
+                updatePosTotals();
+            }
         } else {
             showToast('Hata: ' + data.error, 'error');
         }
