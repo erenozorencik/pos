@@ -1354,10 +1354,44 @@ document.addEventListener('DOMContentLoaded', () => {
 // ========================
 // ADMIN YÖNETİM İŞLEMLERİ
 // ========================
+function initReportDates() {
+    const startInput = document.getElementById('report-start-date');
+    const endInput = document.getElementById('report-end-date');
+    
+    if (!startInput.value || !endInput.value) {
+        const now = new Date();
+        const hour = now.getHours();
+        
+        let businessStart = new Date(now);
+        let businessEnd = new Date(now);
+        
+        if (hour < 6) {
+            // Gece 00:00 ile 06:00 arası: Bir önceki günün işgünü devam ediyor
+            businessStart.setDate(businessStart.getDate() - 1);
+            businessStart.setHours(6, 0, 0, 0);
+            businessEnd.setHours(4, 0, 0, 0);
+        } else {
+            // Sabah 06:00 sonrası: İçinde bulunduğumuz günün işgünü
+            businessStart.setHours(6, 0, 0, 0);
+            businessEnd.setDate(businessEnd.getDate() + 1);
+            businessEnd.setHours(4, 0, 0, 0);
+        }
+
+        const toLocalISOString = (date) => {
+            const pad = (n) => n.toString().padStart(2, '0');
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        };
+
+        startInput.value = toLocalISOString(businessStart);
+        endInput.value = toLocalISOString(businessEnd);
+    }
+}
+
 async function loadAdminDashboard() {
     if(state.user.role !== 'admin') return;
 
     // Load Reports
+    initReportDates();
     fetchDailyReports();
 
     // Load Users
