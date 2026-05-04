@@ -1438,6 +1438,11 @@ async function fetchDailyReports() {
             tbody.innerHTML = '';
             if(dataSum.orders && dataSum.orders.length > 0) {
                 dataSum.orders.forEach(o => {
+                    const pmMap = { 'cash': 'Nakit', 'credit_card': 'Kredi Kartı', 'meal_card': 'Yemek Çeki', 'veresiye': 'Veresiye', 'discount': 'İskonto' };
+                    let payText = '-';
+                    if(o.payment_methods) {
+                        payText = o.payment_methods.split(', ').map(pm => pmMap[pm] || pm).join(', ');
+                    }
                     const tr = document.createElement('tr');
                     tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
                     tr.innerHTML = `
@@ -1448,6 +1453,7 @@ async function fetchDailyReports() {
                         <td style="padding:8px 10px; color:#888;">${o.category_name || '-'}</td>
                         <td style="padding:8px 10px; text-align:right;">${o.quantity}</td>
                         <td style="padding:8px 10px; text-align:right; color:var(--accent-green);">₺${parseFloat(o.line_total).toFixed(2)}</td>
+                        <td style="padding:8px 10px; color:#aaa;">${payText}</td>
                         <td style="padding:8px 10px; color:#888; font-size:13px;">${new Date(o.kapanis).toLocaleString('tr-TR')}</td>
                     `;
                     tbody.appendChild(tr);
