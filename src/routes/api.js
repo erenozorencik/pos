@@ -665,6 +665,20 @@ router.post('/customers', async (req, res) => {
     }
 });
 
+// Müşteri Silme
+router.delete('/customers/:id', async (req, res) => {
+    try {
+        const [customerRows] = await pool.query('SELECT balance FROM customers WHERE id = ?', [req.params.id]);
+        if(customerRows.length > 0 && parseFloat(customerRows[0].balance) > 0) {
+            return res.status(400).json({ success: false, error: 'Borcu olan müşteri silinemez. Önce tahsilat yapınız.' });
+        }
+        await pool.query('DELETE FROM customers WHERE id = ?', [req.params.id]);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Müşteri silinemedi' });
+    }
+});
+
 // Borç TahsilEtme (Ödeme Alma)
 router.post('/customers/:id/pay', async (req, res) => {
     try {

@@ -227,7 +227,15 @@ router.get('/reports/daily-summary', async (req, res) => {
                 oi.price_at_time,
                 (oi.quantity * oi.price_at_time) as line_total,
                 o.closed_at as kapanis,
-                (SELECT GROUP_CONCAT(DISTINCT payment_method SEPARATOR ', ') FROM payments WHERE order_id = o.id) as payment_methods
+                (
+                    SELECT GROUP_CONCAT(CONCAT(payment_method, ':', total_amt) SEPARATOR '|') 
+                    FROM (
+                        SELECT payment_method, SUM(amount) as total_amt, order_id 
+                        FROM payments 
+                        GROUP BY order_id, payment_method
+                    ) p_agg 
+                    WHERE p_agg.order_id = o.id
+                ) as payment_details
             FROM order_items oi
             JOIN orders o ON oi.order_id = o.id
             JOIN tables t ON o.table_id = t.id

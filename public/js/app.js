@@ -729,6 +729,12 @@ async function submitPosPayment(method) {
         
         if(data.success) {
             showToast(`Tahsilat başarılı: ₺${amountToPay.toFixed(2)}`, 'success');
+            
+            // Eğer veresiye işlemi yapıldıysa müşteri bakiyeleri değişmiş olabilir, listeyi güncelle
+            if (method === 'veresiye') {
+                fetchCustomers();
+            }
+
             if(data.closed) {
                 posSelectedItems = [];
                 switchView('tables-view');
@@ -1253,6 +1259,7 @@ function renderCustomers() {
                 <div style="display: flex; gap: 6px;">
                     <button onclick="viewCustomerLogs(${c.id}, '${c.name.replace(/'/g, '\\&apos;')}')" class="btn btn-secondary btn-small" style="background: rgba(255,255,255,0.1);">Cari Geçmişi</button>
                     ${c.balance > 0 ? `<button onclick="receiveDebt(${c.id}, '${c.name.replace(/'/g, '\\&apos;')}', ${c.balance})" class="btn btn-primary btn-small">Borç Tahsil Et</button>` : ''}
+                    <button onclick="deleteCustomer(${c.id}, '${c.name.replace(/'/g, '\\&apos;')}')" class="btn btn-primary btn-small" style="background: var(--accent-red); border-color: var(--accent-red);">Sil</button>
                 </div>
             </div>
         `;
@@ -1280,6 +1287,22 @@ window.receiveDebt = async function(id, name, balance) {
             showToast('Hata: ' + data.error, 'error');
         }
     } catch(err) {
+        showToast('Bağlantı hatası', 'error');
+    }
+}
+
+window.deleteCustomer = async function(id, name) {
+    if(!confirm(`"${name}" isimli müşteriyi silmek istediğinize emin misiniz?\nUyarı: Borcu olan müşteriler silinemez.`)) return;
+    try {
+        const res = await secureFetch(`/api/customers/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if(data.success) {
+            showToast('Müşteri başarıyla silindi!', 'success');
+            fetchCustomers();
+        } else {
+            showToast('Hata: ' + data.error, 'error');
+        }
+    } catch (err) {
         showToast('Bağlantı hatası', 'error');
     }
 }
@@ -1440,8 +1463,12 @@ async function fetchDailyReports() {
                 dataSum.orders.forEach(o => {
                     const pmMap = { 'cash': 'Nakit', 'credit_card': 'Kredi Kartı', 'meal_card': 'Yemek Çeki', 'veresiye': 'Veresiye', 'discount': 'İskonto' };
                     let payText = '-';
-                    if(o.payment_methods) {
-                        payText = o.payment_methods.split(', ').map(pm => pmMap[pm] || pm).join(', ');
+                    if(o.payment_details) {
+                        payText = o.payment_details.split('|').map(p => {
+                            const [method, amount] = p.split(':');
+                            const name = pmMap[method] || method;
+                            return `${name} (₺${parseFloat(amount).toFixed(2)})`;
+                        }).join(', ');
                     }
                     const tr = document.createElement('tr');
                     tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
