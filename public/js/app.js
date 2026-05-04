@@ -518,6 +518,22 @@ function updatePosTotals() {
     }
 }
 
+document.getElementById('pos-input-amount').addEventListener('focus', (e) => {
+    e.target.value = e.target.value.replace(/₺/g, '');
+});
+
+document.getElementById('pos-input-amount').addEventListener('input', (e) => {
+    let val = e.target.value.replace(/₺/g, '').replace(/,/g, '.').replace(/[^0-9.]/g, '');
+    posInputValue = val;
+});
+
+document.getElementById('pos-input-amount').addEventListener('blur', (e) => {
+    let displayVal = parseFloat(posInputValue);
+    if (!isNaN(displayVal)) {
+        e.target.value = `₺${displayVal.toFixed(2)}`;
+    }
+});
+
 document.querySelectorAll('.numpad-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         let val = e.target.dataset.val;
@@ -634,6 +650,38 @@ document.getElementById('btn-confirm-item-transfer').addEventListener('click', a
     }
 });
 
+function confirmPaymentModal(amount, methodLabel) {
+    return new Promise((resolve) => {
+        const overlay = document.getElementById('payment-confirm-overlay');
+        const msgEl = document.getElementById('payment-confirm-message');
+        const btnConfirm = document.getElementById('btn-confirm-payment-action');
+        const btnCancel = document.getElementById('btn-cancel-payment-action');
+        
+        msgEl.innerHTML = `Tahsil edilecek tutar:<br><strong style="color:var(--accent-orange); font-size:28px; display:inline-block; margin:8px 0;">₺${amount}</strong><br>Ödeme Yöntemi: <strong style="color:white;">${methodLabel}</strong>`;
+        
+        overlay.style.display = 'flex';
+        
+        const cleanup = () => {
+            btnConfirm.removeEventListener('click', onConfirm);
+            btnCancel.removeEventListener('click', onCancel);
+            overlay.style.display = 'none';
+        };
+        
+        const onConfirm = () => {
+            cleanup();
+            resolve(true);
+        };
+        
+        const onCancel = () => {
+            cleanup();
+            resolve(false);
+        };
+        
+        btnConfirm.addEventListener('click', onConfirm);
+        btnCancel.addEventListener('click', onCancel);
+    });
+}
+
 async function submitPosPayment(method) {
     if(!state.currentOrder) return;
     
@@ -644,6 +692,19 @@ async function submitPosPayment(method) {
         if(amountToPay <= 0) return showToast('Ödenecek kalan tutar yok.', 'error');
     }
     
+    let methodNames = {
+        'cash': 'Nakit',
+        'credit_card': 'Kredi Kartı',
+        'meal_card': 'Yemek Çeki',
+        'veresiye': 'Veresiye'
+    };
+    let methodLabel = methodNames[method] || method;
+    
+    const isConfirmed = await confirmPaymentModal(amountToPay.toFixed(2), methodLabel);
+    if (!isConfirmed) {
+        return;
+    }
+
     const customer_id = document.getElementById('pos-customer-select').value || null;
     if (method === 'veresiye' && !customer_id) {
         return showToast('Veresiye işlemi için mutlaka Müşteri seçmelisiniz!', 'error');
