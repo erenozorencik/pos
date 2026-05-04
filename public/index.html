@@ -659,6 +659,31 @@
         </div>
     </div>
 
+    <!-- Müşteri İşlem Geçmişi Overlay -->
+    <div id="customer-logs-modal" style="display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 200; flex-direction: column; justify-content: center; align-items: center; padding: 20px;">
+        <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); width: 100%; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 12px;">
+                <h2 id="customer-logs-title" style="font-size: 20px; margin: 0; color: var(--accent-orange);">Müşteri Geçmişi</h2>
+                <button id="btn-close-customer-logs" style="background: transparent; border: none; color: white; font-size: 24px; cursor: pointer;">&times;</button>
+            </div>
+            <div style="flex: 1; overflow-y: auto; padding-right: 8px;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid #444; color: #888;">
+                            <th style="padding: 8px;">Tarih</th>
+                            <th style="padding: 8px;">İşlem</th>
+                            <th style="padding: 8px;">Açıklama</th>
+                            <th style="padding: 8px; text-align: right;">Tutar</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customer-logs-tbody">
+                        <!-- JS ile doldurulacak -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- Hata ve Bildirim Tasarımı -->
     <div id="toast-container" class="toast-container"></div>
 

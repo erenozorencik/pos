@@ -418,6 +418,36 @@ router.post('/orders/:order_id/pay', async (req, res) => {
         if (payment_method === 'veresiye') {
             if (!customer_id) throw new Error('Veresiye işlemleri için müşteri seçilmesi zorunludur.');
             await connection.query('UPDATE customers SET balance = balance + ? WHERE id = ?', [payAmount, customer_id]);
+            
+            let fullDesc = `Adisyon #${order_id}`;
+            
+            if (paid_items && Array.isArray(paid_items) && paid_items.length > 0) {
+                const itemDescs = [];
+                for (let item of paid_items) {
+                    const [pNameRow] = await connection.query('SELECT p.product_name FROM order_items oi JOIN products p ON oi.product_id = p.id WHERE oi.id = ?', [item.id]);
+                    if (pNameRow.length > 0) {
+                        itemDescs.push(`${pNameRow[0].product_name} (x${item.paid_qty})`);
+                    }
+                }
+                if (itemDescs.length > 0) fullDesc += `: ${itemDescs.join(', ')}`;
+            } else {
+                const [itemRows] = await connection.query(`
+                    SELECT p.product_name, (oi.quantity - oi.paid_quantity) as remaining_qty
+                    FROM order_items oi 
+                    JOIN products p ON oi.product_id = p.id 
+                    WHERE oi.order_id = ? AND (oi.quantity - oi.paid_quantity) > 0
+                `, [order_id]);
+                
+                if (itemRows.length > 0) {
+                    const itemsDesc = itemRows.map(row => `${row.product_name} (x${row.remaining_qty})`).join(', ');
+                    fullDesc += `: ${itemsDesc}`;
+                }
+            }
+            
+            if(fullDesc.length > 250) fullDesc = fullDesc.substring(0, 247) + '...';
+
+            await connection.query('INSERT INTO customer_transactions (customer_id, type, amount, description) VALUES (?, "debt", ?, ?)',
+                [customer_id, payAmount, fullDesc]);
         }
         
         // 4. Kalan borcu hesapla
@@ -644,9 +674,23 @@ router.post('/customers/:id/pay', async (req, res) => {
         
         // Bakiyeden düş
         await pool.query('UPDATE customers SET balance = balance - ? WHERE id = ?', [amountNum, req.params.id]);
+        
+        // İşlem geçmişine (log) kaydet
+        await pool.query('INSERT INTO customer_transactions (customer_id, type, amount, description) VALUES (?, "payment", ?, "Tahsilat Alındı (Nakit/Kart)")', [req.params.id, amountNum]);
+
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message || 'Tahsilat başarısız' });
+    }
+});
+
+// Müşteri İşlem Geçmişi (Cari Logları)
+router.get('/customers/:id/transactions', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM customer_transactions WHERE customer_id = ? ORDER BY created_at DESC', [req.params.id]);
+        res.json({ success: true, data: rows });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'İşlem geçmişi çekilemedi' });
     }
 });
 

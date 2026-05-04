@@ -2,9 +2,10 @@ CREATE DATABASE IF NOT EXISTS cafepos CHARACTER SET utf8mb4 COLLATE utf8mb4_unic
 USE cafepos;
 
 -- Sistemi tamamen temizle (Yeni kurulum için)
-DROP TABLE IF EXISTS payments;
 DROP TABLE IF EXISTS item_logs;
 DROP TABLE IF EXISTS order_items;
+DROP TABLE IF EXISTS payments;
+DROP TABLE IF EXISTS customer_transactions;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS categories;
@@ -31,6 +32,17 @@ CREATE TABLE customers (
     phone VARCHAR(20),
     balance DECIMAL(10,2) DEFAULT 0.00,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2.5 Müşteri İşlem Geçmişi (Cari Logları)
+CREATE TABLE customer_transactions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NOT NULL,
+    type ENUM('debt', 'payment') NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    description VARCHAR(255) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
 );
 
 -- 3. Masalar

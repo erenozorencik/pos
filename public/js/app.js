@@ -1223,14 +1223,19 @@ function renderCustomers() {
     if(!clist) return;
     clist.innerHTML = '';
     
-    payCustomerSelect.innerHTML = '<option value="">Seçiniz...</option>';
+    const payCustomerSelect = document.getElementById('pos-customer-select');
+    if (payCustomerSelect) {
+        payCustomerSelect.innerHTML = '<option value="">-- Müşteri Yok --</option>';
+    }
 
     state.customers.forEach(c => {
         // Dropdown'a ekle
-        const opt = document.createElement('option');
-        opt.value = c.id;
-        opt.textContent = `${c.name} ${c.phone ? ' - ' + c.phone : ''}`;
-        payCustomerSelect.appendChild(opt);
+        if (payCustomerSelect) {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `${c.name} ${c.phone ? ' - ' + c.phone : ''}`;
+            payCustomerSelect.appendChild(opt);
+        }
 
         // Listeye ekle
         const card = document.createElement('div');
@@ -1245,7 +1250,10 @@ function renderCustomers() {
             </div>
             <div style="text-align: right; display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
                 <div style="font-size: 20px; font-weight: bold; color: ${balColor};">₺${parseFloat(c.balance).toFixed(2)}</div>
-                ${c.balance > 0 ? `<button onclick="receiveDebt(${c.id}, '${c.name}', ${c.balance})" class="btn btn-primary btn-small">Borç Tahsil Et</button>` : ''}
+                <div style="display: flex; gap: 6px;">
+                    <button onclick="viewCustomerLogs(${c.id}, '${c.name.replace(/'/g, '\\&apos;')}')" class="btn btn-secondary btn-small" style="background: rgba(255,255,255,0.1);">Cari Geçmişi</button>
+                    ${c.balance > 0 ? `<button onclick="receiveDebt(${c.id}, '${c.name.replace(/'/g, '\\&apos;')}', ${c.balance})" class="btn btn-primary btn-small">Borç Tahsil Et</button>` : ''}
+                </div>
             </div>
         `;
         clist.appendChild(card);
@@ -1275,6 +1283,50 @@ window.receiveDebt = async function(id, name, balance) {
         showToast('Bağlantı hatası', 'error');
     }
 }
+
+window.viewCustomerLogs = async function(id, name) {
+    document.getElementById('customer-logs-title').textContent = `${name} - Cari Geçmişi`;
+    const tbody = document.getElementById('customer-logs-tbody');
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px;">Yükleniyor...</td></tr>';
+    document.getElementById('customer-logs-modal').style.display = 'flex';
+
+    try {
+        const res = await secureFetch(`/api/customers/${id}/transactions`);
+        const data = await res.json();
+        tbody.innerHTML = '';
+        if(data.success && data.data.length > 0) {
+            data.data.forEach(log => {
+                const isDebt = log.type === 'debt';
+                const typeText = isDebt ? '<span style="color:var(--accent-red); font-weight:bold;">Borç (Veresiye)</span>' : '<span style="color:var(--accent-green); font-weight:bold;">Tahsilat</span>';
+                const amountText = isDebt ? `+₺${parseFloat(log.amount).toFixed(2)}` : `-₺${parseFloat(log.amount).toFixed(2)}`;
+                const amountColor = isDebt ? 'var(--accent-red)' : 'var(--accent-green)';
+                
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+                tr.innerHTML = `
+                    <td style="padding: 10px;">${new Date(log.created_at).toLocaleString('tr-TR')}</td>
+                    <td style="padding: 10px;">${typeText}</td>
+                    <td style="padding: 10px; color: #aaa;">${log.description || '-'}</td>
+                    <td style="padding: 10px; text-align: right; color: ${amountColor}; font-weight: bold;">${amountText}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } else {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color: #888;">Bu müşteriye ait henüz geçmiş işlem kaydı yok.</td></tr>';
+        }
+    } catch(err) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color: var(--accent-red);">Veriler yüklenirken hata oluştu.</td></tr>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const btnCloseLogs = document.getElementById('btn-close-customer-logs');
+    if (btnCloseLogs) {
+        btnCloseLogs.addEventListener('click', () => {
+            document.getElementById('customer-logs-modal').style.display = 'none';
+        });
+    }
+});
 
 // ========================
 // ADMIN YÖNETİM İŞLEMLERİ
